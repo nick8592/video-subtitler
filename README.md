@@ -49,9 +49,13 @@ python3 add_subtitles.py /path/to/videos --model medium
 
 A 10-second sample from a 4K travel video (Indonesia, Mount Bromo — cloud river) is included in `example/`.
 
-| Before — Original | After — With subtitles |
-|---|---|
-| https://github.com/user-attachments/assets/8a65b94b-9e78-46a4-9be5-1746a26359a3 | https://github.com/user-attachments/assets/2f653c3b-04ef-4e44-8c5d-56e55ecd02a1 |
+### Before — Original
+
+https://github.com/user-attachments/assets/8a65b94b-9e78-46a4-9be5-1746a26359a3
+
+### After — With subtitles
+
+https://github.com/user-attachments/assets/3521608c-5d91-4b77-a60f-73e125b62e26
 
 > **Note:** GitHub's video player doesn't support soft subtitle tracks. The "After" example above has subtitles burned in for visibility. The actual script outputs soft subtitles (toggleable) by default — use `--hardcode` to burn them in instead.
 
