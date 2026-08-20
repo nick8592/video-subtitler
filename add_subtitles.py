@@ -2,10 +2,11 @@
 """Batch subtitle generator & muxer for .mp4 videos.
 
 Usage:
-  python3 add_subtitles.py /path/to/videos          # full pipeline
-  python3 add_subtitles.py /path/to/videos --srt     # generate .srt only (no mux)
-  python3 add_subtitles.py /path/to/videos --mux     # mux existing .srt only
-  python3 add_subtitles.py /path/to/videos --model medium  # smaller model
+  python3 add_subtitles.py /path/to/videos              # soft subtitle (default)
+  python3 add_subtitles.py /path/to/videos --hardcode    # burn subtitles into video
+  python3 add_subtitles.py /path/to/videos --srt         # generate .srt only
+  python3 add_subtitles.py /path/to/videos --mux         # mux existing .srt only
+  python3 add_subtitles.py /path/to/videos --model medium
 """
 
 import argparse
@@ -36,6 +37,7 @@ COMPUTE_TYPE = "float16"
 LANGUAGE = "en"
 BEAM_SIZE = 5
 VAD_FILTER = True
+HARDCODE_STYLE = "FontSize=24,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=3,Alignment=2,MarginV=60"
 
 
 def extract_audio(video_path: Path, audio_path: Path) -> None:
@@ -85,15 +87,30 @@ def mux_subtitle(video_path: Path, srt_path: Path, output_path: Path) -> None:
         "-i", str(srt_path),
         "-c", "copy",
         "-c:s", "mov_text",
-        "-metadata:s:s:0", "language=zh",
-        "-metadata:s:s:0", "title=Chinese/English Subtitles",
+        "-metadata:s:s:0", "language=en",
+        "-metadata:s:s:0", "title=English Subtitles",
         str(output_path),
     ]
     subprocess.run(cmd, check=True, capture_output=True)
-    print(f"  Muxed → {output_path.name}")
+    print(f"  Muxed (soft) → {output_path.name}")
 
 
-def process_directory(video_dir: Path, srt_only: bool, mux_only: bool, model_size: str) -> None:
+def hardcode_subtitle(video_path: Path, srt_path: Path, output_path: Path) -> None:
+    escaped_srt = str(srt_path).replace(":", "\\:").replace("'", "\\'")
+    vf = f"subtitles='{escaped_srt}':force_style='{HARDCODE_STYLE}'"
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", str(video_path),
+        "-vf", vf,
+        "-c:v", "libx264", "-crf", "23",
+        "-c:a", "aac", "-b:a", "128k",
+        str(output_path),
+    ]
+    subprocess.run(cmd, check=True, capture_output=True)
+    print(f"  Hardcoded → {output_path.name}")
+
+
+def process_directory(video_dir: Path, srt_only: bool, mux_only: bool, hardcode: bool, model_size: str) -> None:
     videos = sorted(v for v in video_dir.glob("*.mp4") if not v.name.startswith("._"))
     if not videos:
         print(f"No .mp4 files found in {video_dir}")
@@ -103,7 +120,8 @@ def process_directory(video_dir: Path, srt_only: bool, mux_only: bool, model_siz
 
     for video in videos:
         srt_path = video.with_suffix(".srt")
-        muxed_path = video.with_name(video.stem + "_subtitled.mp4")
+        out_suffix = "_subtitled.mp4"
+        output_path = video.with_name(video.stem + out_suffix)
 
         print(f"▶ {video.name}")
 
@@ -118,12 +136,15 @@ def process_directory(video_dir: Path, srt_only: bool, mux_only: bool, model_siz
 
         if not srt_only:
             if not srt_path.exists():
-                print(f"  ⚠ No .srt found for {video.name} — skipping mux")
+                print(f"  ⚠ No .srt found for {video.name} — skipping")
                 continue
-            if muxed_path.exists():
-                print(f"  Muxed file already exists — skipping (delete to re-run)")
+            if output_path.exists():
+                print(f"  Output already exists — skipping (delete to re-run)")
             else:
-                mux_subtitle(video, srt_path, muxed_path)
+                if hardcode:
+                    hardcode_subtitle(video, srt_path, output_path)
+                else:
+                    mux_subtitle(video, srt_path, output_path)
 
         print()
 
@@ -131,8 +152,9 @@ def process_directory(video_dir: Path, srt_only: bool, mux_only: bool, model_siz
 def main():
     parser = argparse.ArgumentParser(description="Batch subtitle generator & muxer for .mp4 videos")
     parser.add_argument("directory", type=Path, help="Directory containing .mp4 files")
-    parser.add_argument("--srt", action="store_true", help="Generate .srt only (skip mux)")
+    parser.add_argument("--srt", action="store_true", help="Generate .srt only (skip mux/hardcode)")
     parser.add_argument("--mux", action="store_true", help="Mux existing .srt only (skip transcription)")
+    parser.add_argument("--hardcode", action="store_true", help="Burn subtitles into video instead of soft mux")
     parser.add_argument("--model", default=MODEL_SIZE, help=f"Whisper model size (default: {MODEL_SIZE})")
     args = parser.parse_args()
 
@@ -140,7 +162,7 @@ def main():
         print(f"Error: {args.directory} is not a directory")
         sys.exit(1)
 
-    process_directory(args.directory, args.srt, args.mux, args.model)
+    process_directory(args.directory, args.srt, args.mux, args.hardcode, args.model)
 
 
 if __name__ == "__main__":

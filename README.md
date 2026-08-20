@@ -29,10 +29,13 @@ python3 add_subtitles.py /path/to/videos --srt
 ## Usage
 
 ```bash
-# Full pipeline: transcribe + mux soft subtitle into video
+# Full pipeline: transcribe + soft subtitle (toggleable, default)
 python3 add_subtitles.py /path/to/videos
 
-# Generate .srt files only (no mux — e.g. for editing in CapCut)
+# Burn subtitles into video (always visible, for social media/GitHub)
+python3 add_subtitles.py /path/to/videos --hardcode
+
+# Generate .srt files only (e.g. for editing in CapCut)
 python3 add_subtitles.py /path/to/videos --srt
 
 # Mux existing .srt files into videos (skip transcription)
@@ -46,18 +49,16 @@ python3 add_subtitles.py /path/to/videos --model medium
 
 A 10-second sample from a 4K travel video (Indonesia, Mount Bromo — cloud river) is included in `example/`.
 
-### Before — Original (no subtitles)
+| Before — Original | After — With subtitles |
+|---|---|
+| https://github.com/user-attachments/assets/8a65b94b-9e78-46a4-9be5-1746a26359a3 | https://github.com/user-attachments/assets/2f653c3b-04ef-4e44-8c5d-56e55ecd02a1 |
 
-[<!-- DRAG sample.mp4 HERE on GitHub web editor -->](https://github.com/user-attachments/assets/8a65b94b-9e78-46a4-9be5-1746a26359a3)
-
-### After — With soft subtitles
-
-[<!-- DRAG sample_subtitled.mp4 HERE on GitHub web editor -->](https://github.com/user-attachments/assets/2f653c3b-04ef-4e44-8c5d-56e55ecd02a1)
+> **Note:** GitHub's video player doesn't support soft subtitle tracks. The "After" example above has subtitles burned in for visibility. The actual script outputs soft subtitles (toggleable) by default — use `--hardcode` to burn them in instead.
 
 | File | Resolution | Duration | Size | Codec |
 |---|---|---|---|---|
 | `sample.mp4` | 1920×1440 | 10.0s | 7 MB | H.264 |
-| `sample_subtitled.mp4` | 1920×1440 | 10.0s | 7 MB | H.264 + mov_text |
+| `sample_subtitled.mp4` | 1920×1440 | 10.0s | 7 MB | H.264 (subtitles burned in) |
 
 ### Generated subtitle (`sample.srt`)
 
