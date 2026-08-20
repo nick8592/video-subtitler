@@ -33,7 +33,7 @@ if _cuda_paths and "___CUDA_FIXED" not in os.environ:
 MODEL_SIZE = "large-v3"
 DEVICE = "cuda"
 COMPUTE_TYPE = "float16"
-LANGUAGE = "zh"
+LANGUAGE = "en"
 BEAM_SIZE = 5
 VAD_FILTER = True
 
