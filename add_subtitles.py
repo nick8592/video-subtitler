@@ -37,7 +37,7 @@ COMPUTE_TYPE = "float16"
 LANGUAGE = "en"
 BEAM_SIZE = 5
 VAD_FILTER = True
-HARDCODE_STYLE = "FontSize=24,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=3,Alignment=2,MarginV=60"
+HARDCODE_STYLE = "FontSize=14,PrimaryColour=&HFFFFFF,OutlineColour=&H40000000,Outline=1,Shadow=0.5,Alignment=2,MarginV=30"
 
 
 def extract_audio(video_path: Path, audio_path: Path) -> None:
