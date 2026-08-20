@@ -48,11 +48,11 @@ A 10-second sample from a 4K travel video (Indonesia, Mount Bromo — cloud rive
 
 ### Before — Original (no subtitles)
 
-<!-- DRAG sample.mp4 HERE on GitHub web editor -->
+[<!-- DRAG sample.mp4 HERE on GitHub web editor -->](https://github.com/user-attachments/assets/8a65b94b-9e78-46a4-9be5-1746a26359a3)
 
 ### After — With soft subtitles
 
-<!-- DRAG sample_subtitled.mp4 HERE on GitHub web editor -->
+[<!-- DRAG sample_subtitled.mp4 HERE on GitHub web editor -->](https://github.com/user-attachments/assets/2f653c3b-04ef-4e44-8c5d-56e55ecd02a1)
 
 | File | Resolution | Duration | Size | Codec |
 |---|---|---|---|---|
