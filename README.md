@@ -55,7 +55,7 @@ https://github.com/user-attachments/assets/8a65b94b-9e78-46a4-9be5-1746a26359a3
 
 ### After — With subtitles
 
-https://github.com/user-attachments/assets/3521608c-5d91-4b77-a60f-73e125b62e26
+https://github.com/user-attachments/assets/d996cfec-f958-4aba-aea8-9e8952b5877c
 
 > **Note:** GitHub's video player doesn't support soft subtitle tracks. The "After" example above has subtitles burned in for visibility. The actual script outputs soft subtitles (toggleable) by default — use `--hardcode` to burn them in instead.
 
