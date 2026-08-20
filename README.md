@@ -63,15 +63,15 @@ A 10-second sample from a 4K travel video (Indonesia, Mount Bromo — cloud rive
 
 ```srt
 1
-00:00:01,200 --> 00:00:04,400
-蜂蜜在爬山
+00:00:01,200 --> 00:00:05,200
+yeah the cloud is climbing through the hill
 ```
 
 ### How it was made
 
 ```bash
 # Extract 10s clip from full video
-ffmpeg -i "bromo perfect timing.mp4" -t 10 -c copy example/sample.mp4
+ffmpeg -i "bromo cloud river.mp4" -t 10 -vf "scale=1920:1440" -c:v libx264 -crf 23 example/sample.mp4
 
 # Generate subtitle
 python3 add_subtitles.py example --srt
@@ -100,7 +100,7 @@ Edit the constants at the top of `add_subtitles.py`:
 | `MODEL_SIZE` | `large-v3` | Whisper model size (`tiny`, `base`, `small`, `medium`, `large-v3`) |
 | `DEVICE` | `cuda` | `cuda` for GPU, `cpu` for CPU |
 | `COMPUTE_TYPE` | `float16` | `int8_float16` for less VRAM |
-| `LANGUAGE` | `zh` | Primary language (Whisper auto-detects mixed segments) |
+| `LANGUAGE` | `en` | Primary language (Whisper auto-detects mixed segments) |
 | `VAD_FILTER` | `True` | Skip silence during transcription |
 
 ## License
