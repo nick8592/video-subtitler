@@ -46,18 +46,18 @@ python3 add_subtitles.py /path/to/videos --model medium
 
 A 10-second sample from a 4K travel video (Indonesia, Mount Bromo) is included in `example/`.
 
-### Input
+### Before — Original (no subtitles)
+
+<!-- DRAG sample.mp4 HERE on GitHub web editor -->
+
+### After — With soft subtitles
+
+<!-- DRAG sample_subtitled.mp4 HERE on GitHub web editor -->
 
 | File | Resolution | Duration | Size | Codec |
 |---|---|---|---|---|
 | `sample.mp4` | 3840×2880 | 10.0s | 5 MB | HEVC |
-
-### Output
-
-| File | Description |
-|---|---|
-| `sample.srt` | Transcribed subtitle (Chinese, Whisper large-v3) |
-| `sample_subtitled.mp4` | Original video + soft subtitle track (no re-encode) |
+| `sample_subtitled.mp4` | 3840×2880 | 10.0s | 5 MB | HEVC + mov_text |
 
 ### Generated subtitle (`sample.srt`)
 
