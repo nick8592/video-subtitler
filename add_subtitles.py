@@ -16,18 +16,19 @@ import sys
 import tempfile
 from pathlib import Path
 
-_user_site = site.getusersitepackages()
-_nvidia_lib = os.path.join(_user_site, "nvidia") if _user_site else ""
-if _nvidia_lib and os.path.isdir(_nvidia_lib):
-    _extra = []
-    for _sub in ("cublas/lib", "cuda_nvrtc/lib", "cudnn/lib"):
-        _p = os.path.join(_nvidia_lib, _sub)
-        if os.path.isdir(_p):
-            _extra.append(_p)
-    if _extra and "___CUDA_FIXED" not in os.environ:
-        os.environ["LD_LIBRARY_PATH"] = ":".join(_extra) + ":" + os.environ.get("LD_LIBRARY_PATH", "")
-        os.environ["___CUDA_FIXED"] = "1"
-        os.execv(sys.executable, [sys.executable] + sys.argv)
+_all_sites = site.getsitepackages() + ([site.getusersitepackages()] if site.getusersitepackages() else [])
+_cuda_paths = []
+for _sp in _all_sites:
+    _nvidia_dir = os.path.join(_sp, "nvidia")
+    if os.path.isdir(_nvidia_dir):
+        for _sub in ("cublas/lib", "cuda_nvrtc/lib", "cudnn/lib"):
+            _p = os.path.join(_nvidia_dir, _sub)
+            if os.path.isdir(_p):
+                _cuda_paths.append(_p)
+if _cuda_paths and "___CUDA_FIXED" not in os.environ:
+    os.environ["LD_LIBRARY_PATH"] = ":".join(_cuda_paths) + ":" + os.environ.get("LD_LIBRARY_PATH", "")
+    os.environ["___CUDA_FIXED"] = "1"
+    os.execv(sys.executable, [sys.executable] + sys.argv)
 
 MODEL_SIZE = "large-v3"
 DEVICE = "cuda"

@@ -14,15 +14,19 @@ Transcribes speech to `.srt`, then muxes subtitles into video as a toggleable so
 ## Install
 
 ```bash
-pip install faster-whisper
+# Create virtual environment (requires uv or python3-venv)
+uv venv .venv
 
-# For CUDA support (pip-installed nvidia libraries)
-pip install nvidia-cublas-cu12
+# Install dependencies
+uv pip install faster-whisper nvidia-cublas-cu12
 ```
 
 ## Usage
 
 ```bash
+# Activate the venv first
+source .venv/bin/activate
+
 # Full pipeline: transcribe + mux soft subtitle into video
 python3 add_subtitles.py /path/to/videos
 
