@@ -10,20 +10,24 @@ Usage:
 
 import argparse
 import os
+import site
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
-_nvidia_lib = os.path.expanduser("~/.local/lib/python3.14/site-packages/nvidia")
-if os.path.isdir(_nvidia_lib):
+_user_site = site.getusersitepackages()
+_nvidia_lib = os.path.join(_user_site, "nvidia") if _user_site else ""
+if _nvidia_lib and os.path.isdir(_nvidia_lib):
     _extra = []
     for _sub in ("cublas/lib", "cuda_nvrtc/lib", "cudnn/lib"):
         _p = os.path.join(_nvidia_lib, _sub)
         if os.path.isdir(_p):
             _extra.append(_p)
-    if _extra:
+    if _extra and "___CUDA_FIXED" not in os.environ:
         os.environ["LD_LIBRARY_PATH"] = ":".join(_extra) + ":" + os.environ.get("LD_LIBRARY_PATH", "")
+        os.environ["___CUDA_FIXED"] = "1"
+        os.execv(sys.executable, [sys.executable] + sys.argv)
 
 MODEL_SIZE = "large-v3"
 DEVICE = "cuda"
