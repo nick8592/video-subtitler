@@ -1,6 +1,2 @@
 faster-whisper>=1.0
-
-System requirements:
-- ffmpeg (apt install ffmpeg)
-- NVIDIA GPU + CUDA (for GPU acceleration)
-- Python 3.10+
+nvidia-cublas-cu12

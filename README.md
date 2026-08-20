@@ -4,29 +4,31 @@ Batch generate and embed subtitles for `.mp4` videos using [faster-whisper](http
 
 Transcribes speech to `.srt`, then muxes subtitles into video as a toggleable soft subtitle track — no re-encode, original quality preserved.
 
-## Requirements
-
-- Python 3.10+
-- [ffmpeg](https://ffmpeg.org/) (`apt install ffmpeg`)
-- NVIDIA GPU with CUDA (recommended) or CPU fallback
-- [faster-whisper](https://pypi.org/project/faster-whisper/)
-
-## Install
+## Quick Start
 
 ```bash
-# Create virtual environment (requires uv or python3-venv)
-uv venv .venv
-
-# Install dependencies
-uv pip install faster-whisper nvidia-cublas-cu12
+git clone https://github.com/nick8592/video-subtitler.git
+cd video-subtitler
+./setup.sh
 ```
+
+That's it. `setup.sh` creates a venv and installs everything. Then:
+
+```bash
+source .venv/bin/activate
+python3 add_subtitles.py /path/to/videos --srt
+```
+
+### Prerequisites
+
+- [ffmpeg](https://ffmpeg.org/) (`apt install ffmpeg` / `brew install ffmpeg`)
+- Python 3.10+
+- [uv](https://docs.astral.sh/uv/) (recommended) or `python3-venv`
+- NVIDIA GPU with CUDA (recommended) — falls back to CPU automatically
 
 ## Usage
 
 ```bash
-# Activate the venv first
-source .venv/bin/activate
-
 # Full pipeline: transcribe + mux soft subtitle into video
 python3 add_subtitles.py /path/to/videos
 
