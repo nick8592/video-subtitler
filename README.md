@@ -44,7 +44,7 @@ python3 add_subtitles.py /path/to/videos --model medium
 
 ## Example
 
-A 10-second sample from a 4K travel video (Indonesia, Mount Bromo) is included in `example/`.
+A 10-second sample from a 4K travel video (Indonesia, Mount Bromo — cloud river) is included in `example/`.
 
 ### Before — Original (no subtitles)
 
@@ -56,23 +56,15 @@ A 10-second sample from a 4K travel video (Indonesia, Mount Bromo) is included i
 
 | File | Resolution | Duration | Size | Codec |
 |---|---|---|---|---|
-| `sample.mp4` | 3840×2880 | 10.0s | 5 MB | HEVC |
-| `sample_subtitled.mp4` | 3840×2880 | 10.0s | 5 MB | HEVC + mov_text |
+| `sample.mp4` | 1920×1440 | 10.0s | 7 MB | H.264 |
+| `sample_subtitled.mp4` | 1920×1440 | 10.0s | 7 MB | H.264 + mov_text |
 
 ### Generated subtitle (`sample.srt`)
 
 ```srt
 1
-00:00:00,000 --> 00:00:05,010
-就在那边就开会了
-
-2
-00:00:05,010 --> 00:00:07,010
-下班下班
-
-3
-00:00:07,010 --> 00:00:09,010
-他比我来年要务
+00:00:01,200 --> 00:00:04,400
+蜂蜜在爬山
 ```
 
 ### How it was made
