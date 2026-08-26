@@ -1,34 +1,29 @@
-FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
+FROM python:3.11-slim
 
 # ── System dependencies ────────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 \
-    python3-pip \
-    python3-venv \
     ffmpeg \
-    git \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 # ── Python dependencies ───────────────────────────────────────────────────
 COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # ── Application source ────────────────────────────────────────────────────
 COPY add_subtitles.py .
 COPY app.py .
 
 # ── Pre-download Whisper model at build time ──────────────────────────────
-# This avoids a slow download on first request.
-# Uses CPU/int8 for build-time download only; runtime uses GPU.
-ENV WHISPER_MODEL=medium
-RUN python3 -c "from faster_whisper import WhisperModel; WhisperModel('medium', device='cpu', compute_type='int8')"
+# Small model for CPU — faster inference, decent accuracy for short clips
+ENV WHISPER_MODEL=small
+RUN python3 -c "from faster_whisper import WhisperModel; WhisperModel('small', device='cpu', compute_type='int8')"
 
-# ── Runtime defaults ──────────────────────────────────────────────────────
-ENV WHISPER_DEVICE=cuda
-ENV WHISPER_COMPUTE_TYPE=float16
-ENV MAX_VIDEO_DURATION_S=300
+# ── Runtime defaults (CPU-only) ──────────────────────────────────────────
+ENV WHISPER_DEVICE=cpu
+ENV WHISPER_COMPUTE_TYPE=int8
+ENV MAX_VIDEO_DURATION_S=120
 
 # HF Spaces requires port 7860
 EXPOSE 7860

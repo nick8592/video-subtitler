@@ -101,9 +101,11 @@ def process_video(video_file: str, language: str, mode: str, progress=gr.Progres
 with gr.Blocks(title="Video Subtitler") as demo:
     gr.Markdown("""
     # 🎬 Video Subtitler
-    Auto-generate subtitles for MP4 videos using **faster-whisper** (GPU-accelerated Whisper) + FFmpeg.
+    Auto-generate subtitles for MP4 videos using **faster-whisper** + FFmpeg.
 
     Upload a video → get back a subtitled version + SRT file.
+
+    > ⚡ Running on CPU — use short clips (< 2 min) for best results.
     """)
 
     with gr.Row():

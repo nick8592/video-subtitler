@@ -1,3 +1,2 @@
 faster-whisper>=1.0
-nvidia-cublas-cu12
 gradio>=4.0
