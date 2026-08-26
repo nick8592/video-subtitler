@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Gradio web UI for Video Subtitler.
 
-Wraps the CLI functions from add_subtitles.py into a web interface
-for deployment on Hugging Face Spaces.
+Wraps the CLI functions from add_subtitles.py into a web interface.
+Works locally (GPU) or on Hugging Face Spaces (CPU).
 """
 
 import tempfile
@@ -21,13 +21,12 @@ from add_subtitles import (
     hardcode_subtitle,
 )
 
-# ── HF Spaces config ──────────────────────────────────────────────────────
-# Override model via env vars (set in Dockerfile or HF Spaces settings)
-HF_MODEL = os.environ.get("WHISPER_MODEL", MODEL_SIZE)
-HF_DEVICE = os.environ.get("WHISPER_DEVICE", DEVICE)
-HF_COMPUTE_TYPE = os.environ.get("WHISPER_COMPUTE_TYPE", COMPUTE_TYPE)
+# ── Config (override via env vars) ────────────────────────────────────────
+APP_MODEL = os.environ.get("WHISPER_MODEL", MODEL_SIZE)
+APP_DEVICE = os.environ.get("WHISPER_DEVICE", DEVICE)
+APP_COMPUTE_TYPE = os.environ.get("WHISPER_COMPUTE_TYPE", COMPUTE_TYPE)
 
-MAX_VIDEO_DURATION_S = int(os.environ.get("MAX_VIDEO_DURATION_S", "300"))  # 5 min default
+MAX_VIDEO_DURATION_S = int(os.environ.get("MAX_VIDEO_DURATION_S", "0"))  # 0 = no limit
 
 LANGUAGE_OPTIONS = [
     "auto", "en", "zh", "ja", "ko", "es", "fr", "de", "id",
@@ -51,7 +50,7 @@ def _get_video_duration(video_path: Path) -> float:
         return 0.0
 
 
-def process_video(video_file: str, language: str, mode: str, progress=gr.Progress()):
+def process_video(video_file, language: str, mode: str, progress=gr.Progress()):
     """Process an uploaded video and return the subtitled file + SRT content."""
     if video_file is None:
         return None, "Please upload a video file."
@@ -60,9 +59,10 @@ def process_video(video_file: str, language: str, mode: str, progress=gr.Progres
 
     # ── Duration check ──────────────────────────────────────────────────
     progress(0, desc="Checking video...")
-    duration = _get_video_duration(video_path)
-    if duration > MAX_VIDEO_DURATION_S:
-        return None, f"Video is {duration:.0f}s — max is {MAX_VIDEO_DURATION_S}s. Please upload a shorter clip."
+    if MAX_VIDEO_DURATION_S > 0:
+        duration = _get_video_duration(video_path)
+        if duration > MAX_VIDEO_DURATION_S:
+            return None, f"Video is {duration:.0f}s — max is {MAX_VIDEO_DURATION_S}s. Please upload a shorter clip."
 
     tmpdir = tempfile.mkdtemp()
     srt_path = Path(tmpdir) / f"{video_path.stem}.srt"
@@ -74,9 +74,9 @@ def process_video(video_file: str, language: str, mode: str, progress=gr.Progres
     extract_audio(video_path, audio_path)
 
     # ── Transcribe ─────────────────────────────────────────────────────
-    progress(0.2, desc=f"Loading Whisper model ({HF_MODEL})...")
+    progress(0.2, desc=f"Loading Whisper model ({APP_MODEL})...")
     lang_arg = None if language == "auto" else language
-    transcribe_to_srt(audio_path, srt_path, HF_MODEL, lang_arg)
+    transcribe_to_srt(audio_path, srt_path, APP_MODEL, lang_arg)
 
     # ── Mux / Hardcode ─────────────────────────────────────────────────
     if mode == "Hardcode (burned in)":
@@ -104,8 +104,6 @@ with gr.Blocks(title="Video Subtitler") as demo:
     Auto-generate subtitles for MP4 videos using **faster-whisper** + FFmpeg.
 
     Upload a video → get back a subtitled version + SRT file.
-
-    > ⚡ Running on CPU — use short clips (< 2 min) for best results.
     """)
 
     with gr.Row():
@@ -132,12 +130,11 @@ with gr.Blocks(title="Video Subtitler") as demo:
                 label="SRT Content",
                 lines=12,
                 max_lines=30,
-                show_copy_button=True,
             )
 
     gr.Markdown(f"""
     ---
-    **Config:** Model=`{HF_MODEL}` | Device=`{HF_DEVICE}` | Compute=`{HF_COMPUTE_TYPE}` | Max duration={MAX_VIDEO_DURATION_S}s
+    **Config:** Model=`{APP_MODEL}` | Device=`{APP_DEVICE}` | Compute=`{APP_COMPUTE_TYPE}`
     """)
 
     submit_btn.click(
@@ -148,4 +145,4 @@ with gr.Blocks(title="Video Subtitler") as demo:
 
 
 if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", server_port=7860)
+    demo.launch()
