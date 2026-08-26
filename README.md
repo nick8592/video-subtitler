@@ -2,7 +2,7 @@
 
 Batch generate and embed subtitles for `.mp4` videos using [faster-whisper](https://github.com/SYSTRAN/fater-whisper) (GPU-accelerated Whisper) and ffmpeg.
 
-Transcribes speech to `.srt`, then muxes subtitles into video as a toggleable soft subtitle track — no re-encode, original quality preserved.
+Transcribes speech to `.srt`, then muxes subtitles into video as a toggleable soft subtitle track — no re-encode, original quality preserved. Also includes a Gradio web UI with model/device/compute selection, editable SRT, video regeneration, and SRT download.
 
 ## Quick Start
 
@@ -12,11 +12,17 @@ cd video-subtitler
 ./setup.sh
 ```
 
-That's it. `setup.sh` creates a venv and installs everything. Then:
+That's it. `setup.sh` creates a venv, installs everything, and pre-downloads all Whisper models. Then:
 
 ```bash
 source .venv/bin/activate
 python3 add_subtitles.py /path/to/videos --srt
+```
+
+Or launch the web UI:
+
+```bash
+python3 app.py
 ```
 
 ### Prerequisites
@@ -26,7 +32,20 @@ python3 add_subtitles.py /path/to/videos --srt
 - [uv](https://docs.astral.sh/uv/) (recommended) or `python3-venv`
 - NVIDIA GPU with CUDA (recommended) — falls back to CPU automatically
 
-## Usage
+## Web UI
+
+```bash
+python3 app.py
+```
+
+Opens a Gradio interface at `http://127.0.0.1:7860` with:
+
+- **Model / Device / Compute** — choose Whisper model size, CPU or CUDA, and compute type
+- **Editable SRT** — edit the generated subtitle text and regenerate the video
+- **Regenerate Video** — burn or mux the edited SRT back into the video
+- **Download SRT** — download the `.srt` file directly
+
+## Usage (CLI)
 
 ```bash
 # Full pipeline: transcribe + soft subtitle (toggleable, default)
@@ -97,6 +116,12 @@ For each `.mp4` in the target directory:
 Idempotent — skips files that already have `.srt` or `_subtitled.mp4`. Delete those files to re-run.
 
 ## Configuration
+
+### Web UI
+
+Model, device, and compute type are selected via dropdowns in the interface. No config edits needed.
+
+### CLI
 
 Edit the constants at the top of `add_subtitles.py`:
 
