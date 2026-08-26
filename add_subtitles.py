@@ -110,12 +110,14 @@ def _split_long_segment(segment, max_duration: float):
     return sub_segments
 
 
-def transcribe_to_srt(audio_path: Path, srt_path: Path, model_size: str, language: str | None = None) -> None:
+def transcribe_to_srt(audio_path: Path, srt_path: Path, model_size: str, language: str | None = None, device: str | None = None, compute_type: str | None = None) -> None:
     from faster_whisper import WhisperModel
     from faster_whisper.vad import VadOptions
 
-    print(f"  Loading model {model_size} on {DEVICE} ({COMPUTE_TYPE})…")
-    model = WhisperModel(model_size, device=DEVICE, compute_type=COMPUTE_TYPE)
+    _device = device or DEVICE
+    _compute_type = compute_type or COMPUTE_TYPE
+    print(f"  Loading model {model_size} on {_device} ({_compute_type})…")
+    model = WhisperModel(model_size, device=_device, compute_type=_compute_type)
 
     vad_params = VadOptions(
         max_speech_duration_s=MAX_SPEECH_DURATION_S,
