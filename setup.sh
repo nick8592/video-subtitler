@@ -29,6 +29,26 @@ else
 fi
 
 echo ""
+if [ -n "${HF_TOKEN:-}" ]; then
+  echo "Pre-downloading Whisper models (HF_TOKEN set)..."
+else
+  echo "Pre-downloading Whisper models..."
+  echo "  Tip: set HF_TOKEN env var for faster downloads & higher rate limits."
+  echo "  https://huggingface.co/settings/tokens"
+fi
+HF_HUB_ENABLE_HF_TRANSFER=1 .venv/bin/python3 -c "
+import os
+os.environ.pop('HF_HUB_ENABLE_HF_TRANSFER', None)  # avoid import issues if hf_transfer not installed
+from faster_whisper import WhisperModel
+for size in ['tiny', 'base', 'small', 'medium', 'large-v3']:
+    print(f'  Downloading {size}...', flush=True)
+    WhisperModel(size, device='cpu', compute_type='int8')
+    print(f'  ✓ {size}')
+print('All models cached.')
+"
+
+echo ""
 echo "Done! To use:"
 echo "  source .venv/bin/activate"
 echo "  python3 add_subtitles.py /path/to/videos --srt"
+echo "  python3 app.py          # Gradio web UI"
