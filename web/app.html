@@ -1129,8 +1129,122 @@
     .error-display p { color: var(--danger); }
 
     /* =========================================================
-       Utility
-       ========================================================= */
+        Download icon button (block-label right side)
+        ========================================================= */
+    .download-icon-btn {
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      color: var(--text-secondary);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      transition: all 0.2s var(--ease);
+      cursor: pointer;
+    }
+    .download-icon-btn:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      transform: translateY(-1px);
+    }
+
+    /* =========================================================
+        Progress circle overlay (on video frame)
+        ========================================================= */
+    .video-progress-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border-radius: inherit;
+      z-index: 5;
+      animation: overlay-in 0.3s var(--ease);
+    }
+    @keyframes overlay-in {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    .progress-circle-svg {
+      width: 100px;
+      height: 100px;
+      transform: rotate(-90deg);
+    }
+    .progress-circle-track {
+      fill: none;
+      stroke: var(--surface-3);
+      stroke-width: 8;
+    }
+    .progress-circle-fill {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 8;
+      stroke-linecap: round;
+      stroke-dasharray: 326.73;
+      stroke-dashoffset: 326.73;
+      transition: stroke-dashoffset 0.4s var(--ease);
+      filter: drop-shadow(0 0 6px var(--accent-glow));
+    }
+    .progress-circle-text {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .progress-circle-pct {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+    .progress-circle-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    /* =========================================================
+        Soft subtitle notice
+        ========================================================= */
+    .soft-notice {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-top: 10px;
+      padding: 10px 14px;
+      background: color-mix(in srgb, var(--accent-soft) 60%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+      border-radius: 10px;
+      font-size: 12px;
+      line-height: 1.55;
+      color: var(--text-secondary);
+      animation: notice-in 0.3s var(--ease);
+    }
+    @keyframes notice-in {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .soft-notice svg {
+      flex-shrink: 0;
+      margin-top: 1px;
+      color: var(--accent);
+    }
+
+    /* =========================================================
+        Utility
+        ========================================================= */
     [hidden] { display: none !important; }
     .visually-hidden {
       position: absolute;
@@ -1489,8 +1603,15 @@
         <div class="block">
           <div class="block-label">
             <span>Subtitled Video</span>
+            <a id="download-video-btn" class="download-icon-btn" hidden download="subtitled.mp4" aria-label="Download subtitled video" title="Download subtitled video">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            </a>
           </div>
-          <div class="video-frame">
+          <div class="video-frame" id="result-video-frame">
             <video id="result-video" controls preload="metadata" hidden></video>
             <div class="video-empty" id="result-empty">
               <div class="video-empty-icon" aria-hidden="true">
@@ -1501,6 +1622,26 @@
               </div>
               <p class="video-empty-text">Your subtitled video will appear here after processing.</p>
             </div>
+            <!-- Progress circle overlay (shown during generation) -->
+            <div class="video-progress-overlay" id="video-progress-overlay" hidden>
+              <svg class="progress-circle-svg" viewBox="0 0 120 120" aria-hidden="true">
+                <circle class="progress-circle-track" cx="60" cy="60" r="52"/>
+                <circle class="progress-circle-fill" id="progress-circle-fill" cx="60" cy="60" r="52"/>
+              </svg>
+              <div class="progress-circle-text">
+                <span class="progress-circle-pct" id="video-progress-pct">0%</span>
+                <span class="progress-circle-label" id="video-progress-label">Processing</span>
+              </div>
+            </div>
+          </div>
+          <!-- Soft subtitle notice (shown when soft mode is active and video is generated) -->
+          <div class="soft-notice" id="soft-notice" hidden>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            <span>Soft subtitles are embedded as a track but won&rsquo;t display in this preview because the browser&rsquo;s HTML5 video player doesn&rsquo;t support embedded subtitle tracks. They will work in players like VLC, mpv, or when burned in (Hardcode mode).</span>
           </div>
         </div>
 

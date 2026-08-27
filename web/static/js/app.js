@@ -201,6 +201,7 @@ function setupModeToggle() {
     hardBtn.setAttribute('aria-pressed', String(!isSoft));
     if (fontSection) fontSection.style.display = isSoft ? 'none' : '';
     if (previewImg) previewImg.style.display = isSoft ? 'none' : '';
+    updateSoftNotice();
   };
 
   softBtn.addEventListener('click', () => apply(MODE_SOFT));
@@ -244,6 +245,65 @@ function setupAccordion() {
 }
 
 // ── Progress / Error UI ─────────────────────────────────────────────────────
+const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 52; // r=52 in the SVG viewBox
+
+function setVideoProgress(percent, message) {
+  const overlay = document.getElementById('video-progress-overlay');
+  const pctEl = document.getElementById('video-progress-pct');
+  const labelEl = document.getElementById('video-progress-label');
+  const fillEl = document.getElementById('progress-circle-fill');
+  if (!overlay || !fillEl) return;
+  const clamped = Math.max(0, Math.min(100, percent));
+  const offset = CIRCLE_CIRCUMFERENCE - (clamped / 100) * CIRCLE_CIRCUMFERENCE;
+  fillEl.style.strokeDashoffset = offset;
+  if (pctEl) pctEl.textContent = `${Math.round(clamped)}%`;
+  if (labelEl && typeof message === 'string') {
+    const short = message.replace(/\.\.\.$/, '').split(' (')[0].trim();
+    labelEl.textContent = short || 'Processing';
+  }
+}
+
+function showVideoProgress() {
+  const overlay = document.getElementById('video-progress-overlay');
+  const empty = document.getElementById('result-empty');
+  const video = document.getElementById('result-video');
+  if (overlay) {
+    overlay.removeAttribute('hidden');
+    overlay.style.display = '';
+  }
+  if (empty) {
+    empty.setAttribute('hidden', '');
+    empty.style.display = 'none';
+  }
+  if (video) {
+    video.setAttribute('hidden', '');
+    video.style.display = 'none';
+  }
+  setVideoProgress(0, 'Starting');
+}
+
+function hideVideoProgress() {
+  const overlay = document.getElementById('video-progress-overlay');
+  if (overlay) {
+    overlay.setAttribute('hidden', '');
+    overlay.style.display = 'none';
+  }
+}
+
+function updateSoftNotice() {
+  const notice = document.getElementById('soft-notice');
+  if (!notice) return;
+  const isSoft = currentMode === MODE_SOFT;
+  const hasResult = !!currentJobId;
+  if (isSoft && hasResult) {
+    notice.removeAttribute('hidden');
+    notice.style.display = '';
+  } else {
+    notice.setAttribute('hidden', '');
+    notice.style.display = 'none';
+  }
+}
+
 function setProgress(percent, message) {
   const bar = document.getElementById('progress-bar');
   const text = document.getElementById('progress-text');
@@ -251,6 +311,7 @@ function setProgress(percent, message) {
   if (bar) bar.style.width = `${Math.max(0, Math.min(100, percent))}%`;
   if (text && typeof message === 'string') text.textContent = message;
   if (pct) pct.textContent = `${Math.round(percent)}%`;
+  setVideoProgress(percent, message);
 }
 
 function showProgress() {
@@ -260,6 +321,7 @@ function showProgress() {
     c.style.display = '';
   }
   setProgress(0, 'Starting...');
+  showVideoProgress();
 }
 
 function hideProgress() {
@@ -268,6 +330,7 @@ function hideProgress() {
     c.setAttribute('hidden', '');
     c.style.display = 'none';
   }
+  hideVideoProgress();
 }
 
 function showError(message) {
@@ -349,6 +412,16 @@ async function consumeSSE(response, onEvent) {
 async function onGenerate() {
   if (!currentVideoFile) { showError('Please upload a video first.'); return; }
   clearError();
+  const dlVideoBtn = document.getElementById('download-video-btn');
+  if (dlVideoBtn) {
+    dlVideoBtn.setAttribute('hidden', '');
+    dlVideoBtn.style.display = 'none';
+  }
+  const softNotice = document.getElementById('soft-notice');
+  if (softNotice) {
+    softNotice.setAttribute('hidden', '');
+    softNotice.style.display = 'none';
+  }
   showProgress();
   setBusy(true);
   try {
@@ -380,6 +453,12 @@ function handleDone(result) {
   if (result.video_url) {
     const m = result.video_url.match(/\/api\/files\/([^/]+)\//);
     if (m) currentJobId = m[1];
+    const dlBtn = document.getElementById('download-video-btn');
+    if (dlBtn) {
+      dlBtn.href = result.video_url;
+      dlBtn.removeAttribute('hidden');
+      dlBtn.style.display = '';
+    }
   }
   hideProgress();
   // Enable download and regenerate buttons now that we have results
@@ -390,6 +469,7 @@ function handleDone(result) {
   // Re-enable generate button
   const genBtn = document.getElementById('generate-btn');
   if (genBtn) genBtn.disabled = false;
+  updateSoftNotice();
 }
 
 // ── Preview ─────────────────────────────────────────────────────────────────
@@ -435,6 +515,16 @@ async function onRegenerate() {
     return;
   }
   clearError();
+  const dlVideoBtn = document.getElementById('download-video-btn');
+  if (dlVideoBtn) {
+    dlVideoBtn.setAttribute('hidden', '');
+    dlVideoBtn.style.display = 'none';
+  }
+  const softNotice = document.getElementById('soft-notice');
+  if (softNotice) {
+    softNotice.setAttribute('hidden', '');
+    softNotice.style.display = 'none';
+  }
   showProgress();
   setBusy(true);
   try {
