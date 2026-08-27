@@ -25,10 +25,6 @@ from add_subtitles import (
 )
 
 # ── Config (override via env vars) ────────────────────────────────────────
-APP_MODEL = os.environ.get("WHISPER_MODEL", MODEL_SIZE)
-APP_COMPUTE_TYPE = os.environ.get("WHISPER_COMPUTE_TYPE", "int8_float16" if not HAS_CUDA else COMPUTE_TYPE)
-
-MAX_VIDEO_DURATION_S = int(os.environ.get("MAX_VIDEO_DURATION_S", "0"))  # 0 = no limit
 
 
 def _cuda_available() -> bool:
@@ -41,7 +37,12 @@ def _cuda_available() -> bool:
 
 
 HAS_CUDA = _cuda_available()
+
+APP_MODEL = os.environ.get("WHISPER_MODEL", MODEL_SIZE)
 APP_DEVICE = os.environ.get("WHISPER_DEVICE", "cuda" if HAS_CUDA else "cpu")
+APP_COMPUTE_TYPE = os.environ.get("WHISPER_COMPUTE_TYPE", "int8_float16" if not HAS_CUDA else COMPUTE_TYPE)
+
+MAX_VIDEO_DURATION_S = int(os.environ.get("MAX_VIDEO_DURATION_S", "0"))  # 0 = no limit
 
 LANGUAGE_OPTIONS = [
     "auto", "en", "zh", "ja", "ko", "es", "fr", "de", "id",
