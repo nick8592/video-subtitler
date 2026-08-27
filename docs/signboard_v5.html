@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Subtitler — Signboard v5</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: #111;
+  }
+
+  .signboard {
+    width: 960px;
+    height: 240px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    background: #0a0a0b;
+  }
+
+  /* Grid background — matches web UI hero */
+  .grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(#222224 1px, transparent 1px),
+      linear-gradient(90deg, #222224 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse at 30% 50%, black 0%, transparent 70%);
+    -webkit-mask-image: radial-gradient(ellipse at 30% 50%, black 0%, transparent 70%);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  /* Mesh gradient — matches web UI bg-mesh */
+  .mesh::before,
+  .mesh::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+  }
+  .mesh::before {
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle at center, rgba(16, 185, 129, 0.35) 0%, transparent 60%);
+    top: -120px;
+    left: -40px;
+  }
+  .mesh::after {
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle at center, rgba(99, 102, 241, 0.2) 0%, transparent 60%);
+    bottom: -100px;
+    right: 60px;
+  }
+
+  /* Noise overlay */
+  .noise {
+    position: absolute;
+    inset: 0;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' /%3E%3C/svg%3E");
+    mix-blend-mode: overlay;
+    pointer-events: none;
+  }
+
+  .content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 56px;
+    padding-bottom: 18px;
+    height: 100%;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    color: #10b981;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 4px 10px;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.12);
+    border-radius: 100px;
+    margin-bottom: 14px;
+    width: fit-content;
+  }
+  .eyebrow::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    background: #10b981;
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.25);
+  }
+
+  .title {
+    font-family: 'Inter', sans-serif;
+    font-size: 52px;
+    font-weight: 800;
+    letter-spacing: -2px;
+    color: #ededed;
+    line-height: 1;
+  }
+
+  .title .accent {
+    background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .tagline {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #8a8a8a;
+    letter-spacing: 0.08em;
+    margin-top: 14px;
+    text-transform: uppercase;
+  }
+
+  .tagline .sep {
+    color: #2e2e31;
+    margin: 0 6px;
+  }
+
+  /* Waveform — right half, canvas-rendered real speech shape */
+  .waveform-canvas {
+    position: absolute;
+    left: 440px;
+    right: 20px;
+    width: calc(100% - 460px);
+    top: 50%;
+    transform: translateY(-50%);
+    height: 160px;
+    z-index: 0;
+    opacity: 0.35;
+  }
+
+  /* Thin separator */
+  .divider {
+    position: absolute;
+    bottom: 40px;
+    left: 56px;
+    right: 56px;
+    height: 1px;
+    background: linear-gradient(90deg, #222224 0%, transparent 100%);
+    z-index: 1;
+  }
+
+  /* Bottom SRT preview */
+  .srt-preview {
+    position: absolute;
+    bottom: 16px;
+    left: 56px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: #8a8a8a;
+    letter-spacing: 0.3px;
+    z-index: 1;
+  }
+
+  .srt-preview .time {
+    color: #10b981;
+    opacity: 0.85;
+    margin-right: 10px;
+  }
+
+  /* 100% local badge — right side */
+  .badge {
+    position: absolute;
+    top: 18px;
+    right: 56px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: #8a8a8a;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .badge-dot {
+    width: 5px;
+    height: 5px;
+    background: #10b981;
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+  }
+</style>
+</head>
+<body>
+  <div class="signboard">
+    <div class="mesh"></div>
+    <div class="grid-bg"></div>
+    <div class="noise"></div>
+
+    <div class="content">
+      <div class="eyebrow">faster-whisper · ffmpeg · 100% local</div>
+      <div class="title">Video <span class="accent">Subtitler</span></div>
+      <div class="tagline">soft / hardcoded subtitles<span class="sep">·</span>gpu accelerated<span class="sep">·</span>font control</div>
+    </div>
+
+    <div class="badge"><span class="badge-dot"></span>100% local</div>
+
+    <canvas class="waveform-canvas" id="waveform"></canvas>
+
+    <div class="divider"></div>
+    <div class="srt-preview"><span class="time">00:00:01,200 → 00:00:05,200</span>yeah the cloud is climbing through the hill</div>
+  </div>
+  <script>
+    // Draw a realistic speech waveform — syllable bursts with fast attack / slow decay,
+    // separated by quiet gaps, each burst taller than the last (crescendo)
+    const canvas = document.getElementById('waveform');
+    const ctx = canvas.getContext('2d');
+
+    function draw() {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+
+      const w = rect.width;
+      const h = rect.height;
+      const mid = h / 2;
+      const maxAmp = h / 2 - 4;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Syllable bursts: [startTime(0-1), duration(0-1), peakAmplitude(0-1)]
+      // 4 syllable groups matching "yeah / the cloud / is climbing / through the hill"
+      const syllables = [
+        // "yeah" — small quiet utterance
+        { start: 0.00, dur: 0.10, peak: 0.25 },
+        // silence
+        // "the cloud" — medium, two bursts close together
+        { start: 0.14, dur: 0.08, peak: 0.40 },
+        { start: 0.24, dur: 0.12, peak: 0.55 },
+        // silence
+        // "is climbing" — louder, two bursts
+        { start: 0.40, dur: 0.06, peak: 0.50 },
+        { start: 0.48, dur: 0.18, peak: 0.80 },
+        // silence
+        // "through the hill" — loudest, three bursts close
+        { start: 0.70, dur: 0.06, peak: 0.70 },
+        { start: 0.78, dur: 0.04, peak: 0.60 },
+        { start: 0.82, dur: 0.14, peak: 1.00 },
+      ];
+
+      // Sample at each pixel column
+      for (let x = 0; x < w; x++) {
+        const t = x / w;
+        let amp = 0;
+
+        // Sum contributions from all syllable envelopes
+        for (const syl of syllables) {
+          const localT = (t - syl.start) / syl.dur;
+          if (localT < 0 || localT > 1) continue;
+
+          // Asymmetric envelope: fast attack (0-15%), slow decay (15-100%)
+          let env;
+          if (localT < 0.15) {
+            env = localT / 0.15; // fast attack
+          } else {
+            env = 1 - ((localT - 0.15) / 0.85); // slow decay
+          }
+          env = Math.max(0, env);
+
+          // Add voiced harmonics — mix of frequencies for realistic speech look
+          const f1 = Math.sin(localT * 42) * 0.6;
+          const f2 = Math.sin(localT * 67) * 0.25;
+          const f3 = Math.sin(localT * 13) * 0.15;
+          const noise = (Math.sin(localT * 127.3) * 0.3 + Math.sin(localT * 89.7) * 0.2);
+
+          const sample = (f1 + f2 + f3 + noise) * env * syl.peak;
+          amp += Math.abs(sample);
+        }
+
+        // Clamp
+        amp = Math.min(1, amp);
+
+        // Draw the bar (mirrored vertically for full waveform look)
+        const barH = amp * maxAmp;
+        ctx.fillStyle = '#34d399';
+        ctx.fillRect(x, mid - barH, 1, barH * 2);
+      }
+    }
+
+    draw();
+  </script>
+</body>
+</html>
