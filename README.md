@@ -15,7 +15,7 @@ Auto-generate and embed subtitles for `.mp4` videos using [faster-whisper](https
 - **Soft subtitles** — mux as a toggleable track, no re-encode, original quality preserved
 - **Hardcoded subtitles** — burn into video for social media / GitHub
 - **Font customization** — choose font, size, color, outline, shadow, alignment and preview before generating
-- **Gradio web UI** — model/device/compute selection, editable SRT, video regeneration, SRT download
+- **Local web UI** — FastAPI + vanilla JS frontend, model/device/compute selection, editable SRT, video regeneration, SRT download
 
 ## Quick Start
 
@@ -27,6 +27,15 @@ cd video-subtitler
 
 `setup.sh` creates a venv, installs everything, and pre-downloads all Whisper models.
 
+### Web UI (recommended)
+
+```bash
+source .venv/bin/activate
+python3 server.py
+```
+
+Opens the local web UI at `http://127.0.0.1:7860`. Upload a video, pick your settings, and generate subtitles — all from the browser.
+
 ### CLI
 
 ```bash
@@ -36,22 +45,7 @@ python3 add_subtitles.py /path/to/videos
 
 This runs the full pipeline: transcribe speech → generate `.srt` → mux soft subtitle track into video.
 
-### Web UI
-
-```bash
-python3 app.py
-```
-
-Opens a Gradio interface at `http://127.0.0.1:7860`.
-
-![Gradio Web UI with font customization](docs/gradio_ui_font_customization.png)
-
-- **Model / Device / Compute** — choose Whisper model size, CPU or CUDA, and compute type (auto-detects GPU)
-- **Font Customization** — customize font name, size, color, outline, shadow, border style, alignment, and vertical margin (hardcode mode only)
-- **Font Preview** — preview subtitle styling on a single frame before generating the full video
-- **Editable SRT** — edit the generated subtitle text and regenerate the video
-- **Regenerate Video** — burn or mux the edited SRT back into the video
-- **Download SRT** — download the `.srt` file directly
+> **Note:** The CLI is the only way to process **multiple videos in batch**. The web UI handles one video at a time.
 
 ### Prerequisites
 
@@ -140,9 +134,11 @@ Idempotent — skips files that already have `.srt` or `_subtitled.mp4`. Delete 
 
 ### Web UI
 
-Model, device, compute type, and font styling are configured via the interface. CUDA is auto-detected at startup — if no GPU is found, the UI defaults to CPU with `int8` compute type.
+Model, device, compute type, and font styling are configured via the web interface at `http://127.0.0.1:7860`. CUDA is auto-detected at startup — if no GPU is found, the UI defaults to CPU with `int8` compute type.
 
 Font customization controls (font name, size, color, outline, shadow, border style, alignment, vertical margin) are available when **Hardcode** mode is selected. A **Font Preview** button renders a single frame with sample subtitle text so you can verify styling before generating the full video.
+
+> **Note:** The web UI processes one video at a time. For batch processing of multiple videos, use the CLI.
 
 ### CLI
 
