@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Subtitler — Signboard v5</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: #111;
+  }
+
+  .signboard {
+    width: 960px;
+    height: 240px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    background: #0a0a0b;
+  }
+
+  /* Grid background — matches web UI hero */
+  .grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(#222224 1px, transparent 1px),
+      linear-gradient(90deg, #222224 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse at 30% 50%, black 0%, transparent 70%);
+    -webkit-mask-image: radial-gradient(ellipse at 30% 50%, black 0%, transparent 70%);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  /* Mesh gradient — matches web UI bg-mesh */
+  .mesh::before,
+  .mesh::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+  }
+  .mesh::before {
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle at center, rgba(16, 185, 129, 0.35) 0%, transparent 60%);
+    top: -120px;
+    left: -40px;
+  }
+  .mesh::after {
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle at center, rgba(99, 102, 241, 0.2) 0%, transparent 60%);
+    bottom: -100px;
+    right: 60px;
+  }
+
+  /* Noise overlay */
+  .noise {
+    position: absolute;
+    inset: 0;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' /%3E%3C/svg%3E");
+    mix-blend-mode: overlay;
+    pointer-events: none;
+  }
+
+  .content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 56px;
+    height: 100%;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    color: #10b981;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 4px 10px;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.12);
+    border-radius: 100px;
+    margin-bottom: 14px;
+    width: fit-content;
+  }
+  .eyebrow::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    background: #10b981;
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.25);
+  }
+
+  .title {
+    font-family: 'Inter', sans-serif;
+    font-size: 52px;
+    font-weight: 800;
+    letter-spacing: -2px;
+    color: #ededed;
+    line-height: 1;
+  }
+
+  .title .accent {
+    background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .tagline {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #5a5a5a;
+    letter-spacing: 0.08em;
+    margin-top: 14px;
+    text-transform: uppercase;
+  }
+
+  .tagline .sep {
+    color: #222224;
+    margin: 0 6px;
+  }
+
+  /* Waveform — right side, green tinted */
+  .waveform {
+    position: absolute;
+    right: 56px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 2.5px;
+    opacity: 0.08;
+    z-index: 1;
+  }
+  .waveform span {
+    display: block;
+    width: 2px;
+    background: #10b981;
+    border-radius: 1px;
+  }
+
+  /* Thin separator */
+  .divider {
+    position: absolute;
+    bottom: 40px;
+    left: 56px;
+    right: 56px;
+    height: 1px;
+    background: linear-gradient(90deg, #222224 0%, transparent 100%);
+    z-index: 1;
+  }
+
+  /* Bottom SRT preview */
+  .srt-preview {
+    position: absolute;
+    bottom: 16px;
+    left: 56px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: #5a5a5a;
+    letter-spacing: 0.3px;
+    z-index: 1;
+  }
+
+  .srt-preview .time {
+    color: #10b981;
+    opacity: 0.6;
+    margin-right: 10px;
+  }
+
+  /* 100% local badge — right side */
+  .badge {
+    position: absolute;
+    top: 18px;
+    right: 56px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: #5a5a5a;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .badge-dot {
+    width: 5px;
+    height: 5px;
+    background: #10b981;
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+  }
+</style>
+</head>
+<body>
+  <div class="signboard">
+    <div class="mesh"></div>
+    <div class="grid-bg"></div>
+    <div class="noise"></div>
+
+    <div class="content">
+      <div class="eyebrow">faster-whisper · ffmpeg · 100% local</div>
+      <div class="title">Video <span class="accent">Subtitler</span></div>
+      <div class="tagline">soft subtitles<span class="sep">·</span>hardcoded<span class="sep">·</span>gpu accelerated<span class="sep">·</span>font control</div>
+    </div>
+
+    <div class="badge"><span class="badge-dot"></span>100% local</div>
+
+    <div class="waveform">
+      <span style="height:8px"></span><span style="height:16px"></span><span style="height:12px"></span><span style="height:24px"></span><span style="height:18px"></span><span style="height:32px"></span><span style="height:20px"></span><span style="height:40px"></span><span style="height:28px"></span><span style="height:14px"></span><span style="height:36px"></span><span style="height:22px"></span><span style="height:44px"></span><span style="height:16px"></span><span style="height:30px"></span><span style="height:38px"></span><span style="height:20px"></span><span style="height:10px"></span><span style="height:26px"></span><span style="height:34px"></span><span style="height:18px"></span><span style="height:22px"></span><span style="height:42px"></span><span style="height:14px"></span><span style="height:20px"></span><span style="height:28px"></span><span style="height:36px"></span><span style="height:12px"></span><span style="height:24px"></span>
+    </div>
+
+    <div class="divider"></div>
+    <div class="srt-preview"><span class="time">00:00:01,200 → 00:00:05,200</span>yeah the cloud is climbing through the hill</div>
+  </div>
+</body>
+</html>
