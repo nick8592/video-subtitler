@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/signboard.svg" alt="Video Subtitler" width="800">
+  <img src="docs/signboard_v4.png" alt="Video Subtitler" width="800">
 </p>
 
 <p align="center">
