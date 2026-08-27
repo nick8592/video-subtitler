@@ -3,3 +3,10 @@ gradio>=4.0
 nvidia-cublas-cu12
 nvidia-cuda-nvrtc-cu12
 nvidia-cudnn-cu12
+
+# FastAPI web UI (server.py)
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+sse-starlette>=2.0
+aiofiles>=23.0
