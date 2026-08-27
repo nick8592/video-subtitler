@@ -26,10 +26,22 @@ from add_subtitles import (
 
 # ── Config (override via env vars) ────────────────────────────────────────
 APP_MODEL = os.environ.get("WHISPER_MODEL", MODEL_SIZE)
-APP_DEVICE = os.environ.get("WHISPER_DEVICE", DEVICE)
-APP_COMPUTE_TYPE = os.environ.get("WHISPER_COMPUTE_TYPE", COMPUTE_TYPE)
+APP_COMPUTE_TYPE = os.environ.get("WHISPER_COMPUTE_TYPE", "int8_float16" if not HAS_CUDA else COMPUTE_TYPE)
 
 MAX_VIDEO_DURATION_S = int(os.environ.get("MAX_VIDEO_DURATION_S", "0"))  # 0 = no limit
+
+
+def _cuda_available() -> bool:
+    """Check whether a CUDA-capable GPU is accessible to CTranslate2."""
+    try:
+        import ctranslate2
+        return len(ctranslate2.get_supported_devices("cuda")) > 0
+    except Exception:
+        return False
+
+
+HAS_CUDA = _cuda_available()
+APP_DEVICE = os.environ.get("WHISPER_DEVICE", "cuda" if HAS_CUDA else "cpu")
 
 LANGUAGE_OPTIONS = [
     "auto", "en", "zh", "ja", "ko", "es", "fr", "de", "id",
@@ -108,6 +120,10 @@ def process_video(
     srt_path = Path(tmpdir) / f"{video_path.stem}.srt"
     output_path = Path(tmpdir) / f"{video_path.stem}_subtitled.mp4"
     audio_path = Path(tmpdir) / "audio.wav"
+
+    # ── CUDA check ────────────────────────────────────────────────────
+    if device == "cuda" and not HAS_CUDA:
+        return None, "", None, None, "CUDA is not available on this system. Please switch Device to 'cpu' and Compute Type to 'int8' or 'int8_float16'."
 
     # ── Extract audio ──────────────────────────────────────────────────
     progress(0.1, desc="Extracting audio...")
