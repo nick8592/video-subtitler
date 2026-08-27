@@ -14,6 +14,7 @@ Auto-generate and embed subtitles for `.mp4` videos using [faster-whisper](https
 
 - **Soft subtitles** — mux as a toggleable track, no re-encode, original quality preserved
 - **Hardcoded subtitles** — burn into video for social media / GitHub
+- **Font customization** — choose font, size, color, outline, shadow, alignment and preview before generating
 - **Gradio web UI** — model/device/compute selection, editable SRT, video regeneration, SRT download
 
 ## Quick Start
@@ -43,9 +44,11 @@ python3 app.py
 
 Opens a Gradio interface at `http://127.0.0.1:7860`.
 
-![Gradio Web UI with sample.mp4](example/gradio_ui.png)
+![Gradio Web UI with font customization](docs/gradio_ui_font_customization.png)
 
-- **Model / Device / Compute** — choose Whisper model size, CPU or CUDA, and compute type
+- **Model / Device / Compute** — choose Whisper model size, CPU or CUDA, and compute type (auto-detects GPU)
+- **Font Customization** — customize font name, size, color, outline, shadow, border style, alignment, and vertical margin (hardcode mode only)
+- **Font Preview** — preview subtitle styling on a single frame before generating the full video
 - **Editable SRT** — edit the generated subtitle text and regenerate the video
 - **Regenerate Video** — burn or mux the edited SRT back into the video
 - **Download SRT** — download the `.srt` file directly
@@ -77,6 +80,9 @@ python3 add_subtitles.py /path/to/video.mp4 --file
 
 # Override model and language
 python3 add_subtitles.py /path/to/videos --model medium --language en
+
+# Burn subtitles with custom font styling
+python3 add_subtitles.py /path/to/videos --hardcode --font-name "Arial" --font-size 18 --font-color "#FFFF00" --outline 2
 ```
 
 ## Example
@@ -134,7 +140,9 @@ Idempotent — skips files that already have `.srt` or `_subtitled.mp4`. Delete 
 
 ### Web UI
 
-Model, device, and compute type are selected via dropdowns in the interface. No config edits needed.
+Model, device, compute type, and font styling are configured via the interface. CUDA is auto-detected at startup — if no GPU is found, the UI defaults to CPU with `int8` compute type.
+
+Font customization controls (font name, size, color, outline, shadow, border style, alignment, vertical margin) are available when **Hardcode** mode is selected. A **Font Preview** button renders a single frame with sample subtitle text so you can verify styling before generating the full video.
 
 ### CLI
 
@@ -144,9 +152,22 @@ Set via environment variables or edit the constants at the top of `add_subtitles
 |---|---|---|---|
 | `MODEL_SIZE` | `WHISPER_MODEL` | `large-v3` | Whisper model size (`tiny`, `base`, `small`, `medium`, `large-v3`) |
 | `DEVICE` | `WHISPER_DEVICE` | `cuda` | `cuda` for GPU, `cpu` for CPU |
-| `COMPUTE_TYPE` | `WHISPER_COMPUTE_TYPE` | `float16` | `int8_float16` for less VRAM |
+| `COMPUTE_TYPE` | `WHISPER_COMPUTE_TYPE` | `float16` | `int8_float16` for less VRAM, `int8` for CPU-only |
 | `LANGUAGE` | — | `auto` | Primary language code (e.g. `en`, `zh`), or `auto` to detect |
 | `VAD_FILTER` | — | `True` | Skip silence during transcription |
+
+Font styling options (hardcode mode only):
+
+| CLI Flag | Default | Description |
+|---|---|---|
+| `--font-name` | `Literata` | Font family name |
+| `--font-size` | `12` | Font size in points |
+| `--font-color` | `#FFFFFF` | Text color (hex) |
+| `--outline` | `0` | Outline/border thickness |
+| `--shadow` | `0` | Shadow depth in pixels |
+| `--border-style` | `1` | `1` = outline + shadow, `3` = opaque box |
+| `--alignment` | `2` | Position: 1–3 bottom, 5–7 top, 9–11 mid (left/center/right) |
+| `--margin-v` | `20` | Vertical margin from edge in pixels |
 
 ## Acknowledgments
 
