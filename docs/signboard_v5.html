@@ -144,13 +144,14 @@
   /* Waveform — right half, canvas-rendered real speech shape */
   .waveform-canvas {
     position: absolute;
-    left: 480px;
-    right: 56px;
+    left: 440px;
+    right: 20px;
+    width: calc(100% - 460px);
     top: 50%;
     transform: translateY(-50%);
     height: 160px;
     z-index: 0;
-    opacity: 0.3;
+    opacity: 0.35;
   }
 
   /* Thin separator */
@@ -249,20 +250,20 @@
       // 4 syllable groups matching "yeah / the cloud / is climbing / through the hill"
       const syllables = [
         // "yeah" — small quiet utterance
-        { start: 0.02, dur: 0.12, peak: 0.25 },
+        { start: 0.00, dur: 0.10, peak: 0.25 },
         // silence
         // "the cloud" — medium, two bursts close together
-        { start: 0.20, dur: 0.08, peak: 0.40 },
-        { start: 0.30, dur: 0.12, peak: 0.55 },
+        { start: 0.14, dur: 0.08, peak: 0.40 },
+        { start: 0.24, dur: 0.12, peak: 0.55 },
         // silence
         // "is climbing" — louder, two bursts
-        { start: 0.50, dur: 0.06, peak: 0.50 },
-        { start: 0.58, dur: 0.18, peak: 0.80 },
+        { start: 0.40, dur: 0.06, peak: 0.50 },
+        { start: 0.48, dur: 0.18, peak: 0.80 },
         // silence
         // "through the hill" — loudest, three bursts close
-        { start: 0.80, dur: 0.06, peak: 0.70 },
-        { start: 0.88, dur: 0.04, peak: 0.60 },
-        { start: 0.94, dur: 0.06, peak: 1.00 },
+        { start: 0.70, dur: 0.06, peak: 0.70 },
+        { start: 0.78, dur: 0.04, peak: 0.60 },
+        { start: 0.82, dur: 0.14, peak: 1.00 },
       ];
 
       // Sample at each pixel column
