@@ -40,7 +40,7 @@ HAS_CUDA = _cuda_available()
 
 APP_MODEL = os.environ.get("WHISPER_MODEL", MODEL_SIZE)
 APP_DEVICE = os.environ.get("WHISPER_DEVICE", "cuda" if HAS_CUDA else "cpu")
-APP_COMPUTE_TYPE = os.environ.get("WHISPER_COMPUTE_TYPE", "int8_float16" if not HAS_CUDA else COMPUTE_TYPE)
+APP_COMPUTE_TYPE = os.environ.get("WHISPER_COMPUTE_TYPE", COMPUTE_TYPE if HAS_CUDA else "int8")
 
 MAX_VIDEO_DURATION_S = int(os.environ.get("MAX_VIDEO_DURATION_S", "0"))  # 0 = no limit
 
@@ -124,7 +124,9 @@ def process_video(
 
     # ── CUDA check ────────────────────────────────────────────────────
     if device == "cuda" and not HAS_CUDA:
-        return None, "", None, None, "CUDA is not available on this system. Please switch Device to 'cpu' and Compute Type to 'int8' or 'int8_float16'."
+        return None, "", None, None, "CUDA is not available on this system. Please switch Device to 'cpu' and Compute Type to 'int8'."
+    if device == "cpu" and compute_type in ("float16", "int8_float16"):
+        return None, "", None, None, f"'{compute_type}' requires CUDA. Please switch Compute Type to 'int8'."
 
     # ── Extract audio ──────────────────────────────────────────────────
     progress(0.1, desc="Extracting audio...")
