@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Subtitler — App</title>
+  <meta name="description" content="Auto-generate and embed subtitles for MP4 videos using GPU-accelerated Whisper. Soft tracks for toggling, hardcoded for socials, full font control — 100% local.">
+  <meta name="theme-color" content="#0a0a0b">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Theme init — runs before paint to avoid FOUC -->
+  <script>
+    (function () {
+      'use strict';
+      const root = document.documentElement;
+      const STORAGE_KEY = 'vs-theme';
+      let theme = 'dark';
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored === 'light' || stored === 'dark') {
+          theme = stored;
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+          theme = 'light';
+        }
+      } catch (e) { /* ignore */ }
+      root.setAttribute('data-theme', theme);
+    })();
+  </script>
+
+  <style>
+    /* =========================================================
+       Theme tokens — mirror web/index.html
+       ========================================================= */
+    :root {
+      --bg: #0a0a0b;
+      --surface: #141415;
+      --surface-2: #1a1a1c;
+      --surface-3: #202023;
+      --border: #222224;
+      --border-strong: #2e2e31;
+      --text: #ededed;
+      --text-secondary: #8a8a8a;
+      --text-tertiary: #5a5a5a;
+      --accent: #10b981;
+      --accent-hover: #34d399;
+      --accent-soft: rgba(16, 185, 129, 0.12);
+      --accent-glow: rgba(16, 185, 129, 0.25);
+      --code-bg: #0d0d0e;
+      --code-border: #1d1d20;
+      --selection: rgba(16, 185, 129, 0.35);
+      --danger: #f87171;
+      --danger-soft: rgba(248, 113, 113, 0.12);
+      --danger-border: rgba(248, 113, 113, 0.3);
+      --shadow-soft: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 40px -12px rgba(0, 0, 0, 0.6);
+      --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 28px -16px rgba(0, 0, 0, 0.5);
+      --noise-opacity: 0.04;
+      --max-w: 1400px;
+      --radius: 12px;
+      --radius-lg: 16px;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+      --nav-h: 64px;
+    }
+
+    [data-theme="light"] {
+      --bg: #fafafa;
+      --surface: #ffffff;
+      --surface-2: #f5f5f5;
+      --surface-3: #ececec;
+      --border: #e5e5e5;
+      --border-strong: #d4d4d4;
+      --text: #171717;
+      --text-secondary: #737373;
+      --text-tertiary: #a3a3a3;
+      --accent: #059669;
+      --accent-hover: #10b981;
+      --accent-soft: rgba(5, 150, 105, 0.08);
+      --accent-glow: rgba(5, 150, 105, 0.18);
+      --code-bg: #f4f4f5;
+      --code-border: #e4e4e7;
+      --selection: rgba(5, 150, 105, 0.25);
+      --danger: #dc2626;
+      --danger-soft: rgba(220, 38, 38, 0.06);
+      --danger-border: rgba(220, 38, 38, 0.2);
+      --shadow-soft: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 12px 40px -16px rgba(0, 0, 0, 0.12);
+      --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 28px -16px rgba(0, 0, 0, 0.08);
+      --noise-opacity: 0.025;
+    }
+
+    /* =========================================================
+       Reset
+       ========================================================= */
+    *, *::before, *::after { box-sizing: border-box; }
+    * { margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 15px;
+      line-height: 1.55;
+      color: var(--text);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      overflow-x: hidden;
+      transition: background 0.3s var(--ease), color 0.3s var(--ease);
+      min-height: 100vh;
+    }
+    ::selection { background: var(--selection); color: var(--text); }
+    img, svg, video { display: block; max-width: 100%; }
+    button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+    a { color: inherit; text-decoration: none; }
+    input, textarea, select { font: inherit; color: inherit; }
+
+    /* =========================================================
+       Background atmosphere (subtle, matches landing)
+       ========================================================= */
+    .bg-mesh {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .bg-mesh::before,
+    .bg-mesh::after {
+      content: '';
+      position: absolute;
+      width: 70vmax;
+      height: 70vmax;
+      border-radius: 50%;
+      filter: blur(140px);
+      opacity: 0.3;
+      will-change: transform;
+    }
+    .bg-mesh::before {
+      background: radial-gradient(circle at center, var(--accent) 0%, transparent 60%);
+      top: -30vmax;
+      left: -10vmax;
+      animation: mesh-drift-a 28s var(--ease) infinite;
+    }
+    .bg-mesh::after {
+      background: radial-gradient(circle at center, #6366f1 0%, transparent 60%);
+      bottom: -35vmax;
+      right: -15vmax;
+      animation: mesh-drift-b 32s var(--ease) infinite;
+    }
+    [data-theme="light"] .bg-mesh::before { opacity: 0.16; }
+    [data-theme="light"] .bg-mesh::after { opacity: 0.12; background: radial-gradient(circle at center, #818cf8 0%, transparent 60%); }
+
+    .bg-noise {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      opacity: var(--noise-opacity);
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' /%3E%3C/svg%3E");
+      mix-blend-mode: overlay;
+    }
+
+    @keyframes mesh-drift-a {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(8vw, 4vh) scale(1.08); }
+      66% { transform: translate(-4vw, 6vh) scale(0.95); }
+    }
+    @keyframes mesh-drift-b {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(-6vw, -5vh) scale(1.05); }
+      66% { transform: translate(5vw, -3vh) scale(0.92); }
+    }
+
+    /* =========================================================
+       Layout primitives
+       ========================================================= */
+    .container {
+      width: 100%;
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    @media (max-width: 640px) {
+      .container { padding: 0 16px; }
+    }
+
+    /* =========================================================
+       Navigation
+       ========================================================= */
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 14px 0;
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+      transition: all 0.3s var(--ease);
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 15px;
+      letter-spacing: -0.01em;
+      color: var(--text);
+      transition: opacity 0.2s var(--ease);
+    }
+    .nav-brand:hover { opacity: 0.75; }
+    .nav-brand-mark {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--accent-soft);
+      border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+      border-radius: 8px;
+      color: var(--accent);
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: all 0.2s var(--ease);
+    }
+    .nav-link:hover { color: var(--text); background: var(--surface-2); }
+    .nav-icon-btn {
+      width: 36px;
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      color: var(--text-secondary);
+      transition: all 0.2s var(--ease);
+      border: 1px solid transparent;
+    }
+    .nav-icon-btn:hover {
+      color: var(--text);
+      background: var(--surface-2);
+      border-color: var(--border);
+    }
+    .nav-icon-btn svg { transition: transform 0.3s var(--ease); }
+
+    /* =========================================================
+       Buttons
+       ========================================================= */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 11px 18px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s var(--ease);
+      border: 1px solid transparent;
+      white-space: nowrap;
+      user-select: none;
+      letter-spacing: -0.005em;
+    }
+    .btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #04140d;
+      box-shadow: 0 0 0 0 var(--accent-glow), 0 4px 18px -6px var(--accent-glow);
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 0 0 4px var(--accent-soft), 0 10px 28px -8px var(--accent-glow);
+    }
+    .btn-primary:active:not(:disabled) { transform: translateY(0); }
+    .btn-primary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border-color: var(--border);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--surface-2);
+      border-color: var(--border-strong);
+      transform: translateY(-1px);
+    }
+    .btn-secondary:active:not(:disabled) { transform: translateY(0); }
+    .btn-secondary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .btn-lg {
+      padding: 14px 22px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: 12px;
+    }
+    .btn-block { width: 100%; }
+    .btn-spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    .btn.is-loading .btn-spinner { display: inline-block; }
+    .btn.is-loading .btn-label { opacity: 0.7; }
+    .btn-text {
+      padding: 4px 10px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      transition: all 0.2s var(--ease);
+    }
+    .btn-text:hover {
+      color: var(--danger);
+      border-color: var(--danger-border);
+      background: var(--danger-soft);
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* =========================================================
+       App layout
+       ========================================================= */
+    .app-main {
+      padding-top: calc(var(--nav-h) + 32px);
+      padding-bottom: 64px;
+      min-height: 100vh;
+    }
+    .app-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+    @media (max-width: 960px) {
+      .app-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+    }
+
+    /* Panel base */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      box-shadow: var(--shadow-card);
+      position: relative;
+    }
+    .panel::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      background: radial-gradient(circle at top right, var(--accent-soft), transparent 60%);
+      opacity: 0.35;
+    }
+    [data-theme="light"] .panel::before { opacity: 0.5; }
+    .panel > * { position: relative; z-index: 1; }
+    .panel-header {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .panel-title {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .panel-title::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+    .panel-sub {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* Sticky results panel on desktop */
+    @media (min-width: 961px) {
+      .results-panel {
+        position: sticky;
+        top: calc(var(--nav-h) + 16px);
+      }
+    }
+
+    /* =========================================================
+       Block & Field primitives
+       ========================================================= */
+    .block {
+      margin-bottom: 22px;
+    }
+    .block:last-child { margin-bottom: 0; }
+    .block-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .block-info {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 6px;
+      line-height: 1.45;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 14px;
+    }
+    .field:last-child { margin-bottom: 0; }
+    .field-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 7px;
+    }
+    .field-label .value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 2px 8px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--accent);
+      min-width: 32px;
+      text-align: center;
+    }
+    .field-info {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+    /* Grid helpers */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 520px) {
+      .grid-2, .grid-3 {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+    }
+
+    /* =========================================================
+       Select dropdown
+       ========================================================= */
+    .select {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      width: 100%;
+      padding: 10px 36px 10px 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s var(--ease);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8a8a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+    [data-theme="light"] .select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23737373' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    }
+    .select:hover { border-color: var(--border-strong); }
+    .select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    /* =========================================================
+       Range slider — custom-styled
+       ========================================================= */
+    .slider {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 100%;
+      height: 24px;
+      background: transparent;
+      cursor: pointer;
+      margin: 0;
+    }
+    .slider::-webkit-slider-runnable-track {
+      height: 4px;
+      background: var(--surface-3);
+      border-radius: 4px;
+      border: none;
+    }
+    .slider::-moz-range-track {
+      height: 4px;
+      background: var(--surface-3);
+      border-radius: 4px;
+      border: none;
+    }
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--bg);
+      margin-top: -6px;
+      box-shadow: 0 0 0 0 var(--accent-glow);
+      transition: box-shadow 0.2s var(--ease), transform 0.2s var(--ease);
+    }
+    .slider::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--bg);
+      box-shadow: 0 0 0 0 var(--accent-glow);
+      transition: box-shadow 0.2s var(--ease), transform 0.2s var(--ease);
+    }
+    .slider:hover::-webkit-slider-thumb {
+      box-shadow: 0 0 0 6px var(--accent-soft);
+      transform: scale(1.1);
+    }
+    .slider:hover::-moz-range-thumb {
+      box-shadow: 0 0 0 6px var(--accent-soft);
+      transform: scale(1.1);
+    }
+    .slider:focus {
+      outline: none;
+    }
+    .slider:focus-visible::-webkit-slider-thumb {
+      box-shadow: 0 0 0 8px var(--accent-soft);
+    }
+    .slider:focus-visible::-moz-range-thumb {
+      box-shadow: 0 0 0 8px var(--accent-soft);
+    }
+    .slider:disabled { opacity: 0.5; cursor: not-allowed; }
+    .slider:disabled::-webkit-slider-thumb { background: var(--text-tertiary); }
+    .slider:disabled::-moz-range-thumb { background: var(--text-tertiary); }
+
+    /* =========================================================
+       Color picker
+       ========================================================= */
+    .color-row {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+    .color-picker {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      width: 44px;
+      height: 38px;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface-2);
+      cursor: pointer;
+      overflow: hidden;
+      transition: border-color 0.2s var(--ease);
+    }
+    .color-picker:hover { border-color: var(--border-strong); }
+    .color-picker::-webkit-color-swatch-wrapper { padding: 3px; }
+    .color-picker::-webkit-color-swatch { border: none; border-radius: 6px; }
+    .color-picker::-moz-color-swatch { border: none; border-radius: 6px; }
+    .color-picker:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .color-hex {
+      flex: 1;
+      min-width: 0;
+      padding: 10px 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      transition: border-color 0.2s var(--ease);
+    }
+    .color-hex:hover { border-color: var(--border-strong); }
+    .color-hex:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    /* =========================================================
+       Upload zone
+       ========================================================= */
+    .upload-zone {
+      position: relative;
+      border-radius: 14px;
+      border: 2px dashed var(--border-strong);
+      background: var(--surface-2);
+      transition: all 0.2s var(--ease);
+      overflow: hidden;
+    }
+    .upload-zone:hover {
+      border-color: var(--accent);
+      background: color-mix(in srgb, var(--accent-soft) 40%, var(--surface-2));
+    }
+    .upload-zone.drag-over {
+      border-color: var(--accent);
+      border-style: solid;
+      background: var(--accent-soft);
+      transform: scale(1.01);
+    }
+    .upload-zone.drag-over .upload-zone-icon {
+      transform: translateY(-2px) scale(1.1);
+      color: var(--accent-hover);
+    }
+    .upload-zone-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 36px 20px;
+      cursor: pointer;
+      text-align: center;
+    }
+    .upload-zone-icon {
+      width: 52px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      transition: all 0.2s var(--ease);
+      margin-bottom: 4px;
+    }
+    .upload-zone:hover .upload-zone-icon {
+      color: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-soft);
+    }
+    .upload-zone-text {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+    }
+    .upload-zone-sub {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+    .upload-zone-filled {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 14px;
+      background: var(--surface-2);
+    }
+    .video-player {
+      width: 100%;
+      border-radius: 10px;
+      background: #000;
+      max-height: 320px;
+      aspect-ratio: 16 / 9;
+    }
+    .video-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 4px 4px 0;
+    }
+    .video-filename {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+      min-width: 0;
+    }
+    .video-filesize {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+
+    /* =========================================================
+       Mode toggle (segmented control)
+       ========================================================= */
+    .mode-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 4px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    .mode-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      text-align: left;
+      color: var(--text-secondary);
+      transition: all 0.2s var(--ease);
+      border: 1px solid transparent;
+    }
+    .mode-btn:hover:not(.active) {
+      color: var(--text);
+      background: var(--surface);
+    }
+    .mode-btn.active {
+      background: var(--surface);
+      color: var(--text);
+      border-color: var(--border-strong);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), 0 0 0 1px var(--accent-soft);
+    }
+    .mode-btn-title {
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .mode-btn-title .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--text-tertiary);
+      transition: background 0.2s var(--ease);
+    }
+    .mode-btn.active .mode-btn-title .dot {
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent-glow);
+    }
+    .mode-btn-sub {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      font-weight: 400;
+    }
+
+    /* =========================================================
+       Accordion (Font Customization)
+       ========================================================= */
+    .accordion {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: border-color 0.2s var(--ease);
+    }
+    .accordion.open { border-color: var(--border-strong); }
+    .accordion-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      transition: background 0.2s var(--ease);
+    }
+    .accordion-header:hover { background: var(--surface); }
+    .accordion-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .accordion-header-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .accordion-chevron {
+      color: var(--text-secondary);
+      transition: transform 0.3s var(--ease);
+      flex-shrink: 0;
+    }
+    .accordion.open .accordion-chevron { transform: rotate(180deg); }
+    .accordion-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s var(--ease);
+    }
+    .accordion.open .accordion-body {
+      max-height: 1400px;
+    }
+    .accordion-body-inner {
+      padding: 4px 16px 18px;
+      border-top: 1px solid var(--border);
+    }
+    .accordion-body-inner > * + * { margin-top: 14px; }
+
+    /* =========================================================
+       Progress bar
+       ========================================================= */
+    .progress-container {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 22px;
+      animation: progress-in 0.3s var(--ease);
+    }
+    @keyframes progress-in {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .progress-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .progress-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .progress-label::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+      animation: pulse 1.5s var(--ease) infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .progress-pct {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .progress-track {
+      height: 6px;
+      background: var(--surface-3);
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent) 0%, var(--accent-hover) 100%);
+      border-radius: 6px;
+      transition: width 0.4s var(--ease);
+      position: relative;
+      overflow: hidden;
+    }
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      animation: progress-shine 1.4s linear infinite;
+    }
+    @keyframes progress-shine {
+      to { transform: translateX(100%); }
+    }
+    .progress-text {
+      font-size: 13px;
+      color: var(--text);
+      margin-top: 10px;
+      font-weight: 500;
+    }
+
+    /* =========================================================
+       Video / preview frames
+       ========================================================= */
+    .video-frame,
+    .preview-frame {
+      position: relative;
+      width: 100%;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      aspect-ratio: 16 / 9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .preview-frame {
+      aspect-ratio: auto;
+      min-height: 200px;
+    }
+    .video-frame video,
+    .preview-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+    }
+    .video-empty,
+    .preview-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 32px 20px;
+      color: var(--text-tertiary);
+      text-align: center;
+    }
+    .video-empty-icon,
+    .preview-empty-icon {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text-tertiary);
+    }
+    .video-empty-text,
+    .preview-empty-text {
+      font-size: 13px;
+      line-height: 1.5;
+      max-width: 280px;
+    }
+
+    /* =========================================================
+       SRT editor
+       ========================================================= */
+    .srt-editor-wrap {
+      position: relative;
+      border-radius: 12px;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      transition: border-color 0.2s var(--ease);
+    }
+    .srt-editor-wrap:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .srt-editor-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--code-border);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.04em;
+    }
+    .srt-editor-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .srt-dots {
+      display: inline-flex;
+      gap: 4px;
+    }
+    .srt-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--border-strong);
+    }
+    .srt-editor {
+      width: 100%;
+      min-height: 220px;
+      max-height: 480px;
+      padding: 14px 16px;
+      background: var(--code-bg);
+      color: var(--text);
+      border: none;
+      outline: none;
+      resize: vertical;
+      font-family: 'JetBrains Mono', 'Menlo', 'Consolas', monospace;
+      font-size: 12.5px;
+      line-height: 1.65;
+      letter-spacing: 0;
+      tab-size: 4;
+    }
+    .srt-editor::placeholder { color: var(--text-tertiary); }
+    .srt-editor-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--surface-2);
+      border-top: 1px solid var(--code-border);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+    .srt-line-count {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* =========================================================
+       Actions row
+       ========================================================= */
+    .actions-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 480px) {
+      .actions-row { grid-template-columns: 1fr; }
+    }
+
+    /* =========================================================
+       Error display
+       ========================================================= */
+    .error-display {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 12px 14px;
+      margin-top: 16px;
+      background: var(--danger-soft);
+      border: 1px solid var(--danger-border);
+      border-radius: 12px;
+      color: var(--danger);
+      font-size: 13px;
+      line-height: 1.5;
+      animation: error-in 0.25s var(--ease);
+    }
+    @keyframes error-in {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .error-display svg { flex-shrink: 0; margin-top: 2px; }
+    .error-display p { color: var(--danger); }
+
+    /* =========================================================
+       Utility
+       ========================================================= */
+    [hidden] { display: none !important; }
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-mesh" aria-hidden="true"></div>
+  <div class="bg-noise" aria-hidden="true"></div>
+
+  <!-- =========================================================
+       Navigation
+       ========================================================= -->
+  <nav class="nav" id="nav">
+    <div class="container nav-inner">
+      <a href="/" class="nav-brand" aria-label="Video Subtitler — home">
+        <span class="nav-brand-mark" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="2"/>
+            <path d="M2 9h20"/>
+            <path d="M7 14h6"/>
+            <path d="M7 17h4"/>
+          </svg>
+        </span>
+        <span>Video Subtitler</span>
+      </a>
+      <div class="nav-actions">
+        <a href="/" class="nav-link" aria-label="Back to landing page">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m15 18-6-6 6-6"/>
+          </svg>
+          <span>Back</span>
+        </a>
+        <button class="nav-icon-btn" id="theme-toggle" aria-label="Toggle theme" title="Toggle theme">
+          <svg id="theme-icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
+          </svg>
+          <svg id="theme-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- =========================================================
+       Main
+       ========================================================= -->
+  <main class="app-main">
+    <div class="container app-grid">
+
+      <!-- =========================================================
+           LEFT COLUMN — Configuration
+           ========================================================= -->
+      <section class="panel config-panel" aria-label="Configuration">
+        <header class="panel-header">
+          <h2 class="panel-title">Configuration</h2>
+          <p class="panel-sub">Upload a video and tune how subtitles are generated.</p>
+        </header>
+
+        <!-- 1. Video Upload -->
+        <div class="block">
+          <div class="block-label">
+            <span>Video</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-tertiary)">.mp4</span>
+          </div>
+          <div class="upload-zone" id="video-upload-zone" tabindex="0" role="button" aria-label="Upload video">
+            <input type="file" id="video-file-input" accept="video/mp4,video/quicktime,video/*" hidden>
+
+            <div class="upload-zone-empty" id="upload-empty">
+              <div class="upload-zone-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+              </div>
+              <p class="upload-zone-text">Drag &amp; drop your video here</p>
+              <p class="upload-zone-sub">or click to browse</p>
+            </div>
+
+            <div class="upload-zone-filled" id="upload-filled" hidden>
+              <video id="video-preview" class="video-player" controls preload="metadata"></video>
+              <div class="video-meta">
+                <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);flex-shrink:0" aria-hidden="true">
+                    <polygon points="23 7 16 12 23 17 23 7"/>
+                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                  </svg>
+                  <span class="video-filename" id="video-filename">video.mp4</span>
+                  <span class="video-filesize" id="video-filesize"></span>
+                </div>
+                <button type="button" class="btn-text" id="remove-video-btn">Remove</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Language -->
+        <div class="block">
+          <label class="block-label" for="language-select">Language</label>
+          <select id="language-select" class="select">
+            <option value="auto" selected>auto — detect automatically</option>
+            <option value="en">en — English</option>
+            <option value="zh">zh — Chinese (中文)</option>
+            <option value="ja">ja — Japanese (日本語)</option>
+            <option value="ko">ko — Korean (한국어)</option>
+            <option value="es">es — Spanish (Español)</option>
+            <option value="fr">fr — French (Français)</option>
+            <option value="de">de — German (Deutsch)</option>
+            <option value="id">id — Indonesian (Bahasa Indonesia)</option>
+            <option value="pt">pt — Portuguese (Português)</option>
+            <option value="ru">ru — Russian (Русский)</option>
+            <option value="it">it — Italian (Italiano)</option>
+            <option value="nl">nl — Dutch (Nederlands)</option>
+            <option value="pl">pl — Polish (Polski)</option>
+            <option value="tr">tr — Turkish (Türkçe)</option>
+            <option value="vi">vi — Vietnamese (Tiếng Việt)</option>
+            <option value="th">th — Thai (ภาษาไทย)</option>
+            <option value="ar">ar — Arabic (العربية)</option>
+            <option value="hi">hi — Hindi (हिन्दी)</option>
+          </select>
+          <p class="block-info">Select &lsquo;auto&rsquo; to detect language automatically</p>
+        </div>
+
+        <!-- 3. Subtitle Mode -->
+        <div class="block">
+          <span class="block-label">Subtitle Mode</span>
+          <div class="mode-toggle" role="radiogroup" aria-label="Subtitle mode">
+            <button type="button" class="mode-btn" id="mode-soft" role="radio" aria-checked="false" data-mode="soft">
+              <span class="mode-btn-title"><span class="dot" aria-hidden="true"></span>Soft subtitle</span>
+              <span class="mode-btn-sub">Toggleable track, no re-encode</span>
+            </button>
+            <button type="button" class="mode-btn active" id="mode-hardcode" role="radio" aria-checked="true" data-mode="hardcode">
+              <span class="mode-btn-title"><span class="dot" aria-hidden="true"></span>Hardcode</span>
+              <span class="mode-btn-sub">Burned in, always visible</span>
+            </button>
+          </div>
+          <p class="block-info">Soft = can toggle on/off; Hardcode = always visible</p>
+        </div>
+
+        <!-- 4. Model / Device / Compute -->
+        <div class="block">
+          <div class="grid-3">
+            <div class="field">
+              <label class="field-label" for="model-select">Whisper Model</label>
+              <select id="model-select" class="select">
+                <option value="tiny">tiny</option>
+                <option value="base">base</option>
+                <option value="small">small</option>
+                <option value="medium">medium</option>
+                <option value="large-v3" selected>large-v3</option>
+              </select>
+              <p class="field-info">Larger = more accurate, slower</p>
+            </div>
+            <div class="field">
+              <label class="field-label" for="device-select">Device</label>
+              <select id="device-select" class="select">
+                <option value="cuda" selected>cuda</option>
+                <option value="cpu">cpu</option>
+              </select>
+              <p class="field-info">cuda requires NVIDIA GPU</p>
+            </div>
+            <div class="field">
+              <label class="field-label" for="compute-select">Compute Type</label>
+              <select id="compute-select" class="select">
+                <option value="float16" selected>float16</option>
+                <option value="int8_float16">int8_float16</option>
+                <option value="int8">int8</option>
+              </select>
+              <p class="field-info">Lower precision = less VRAM</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Font Customization (collapsible, hardcode mode only) -->
+        <div class="accordion open" id="font-section">
+          <button type="button" class="accordion-header" id="font-accordion-toggle" aria-expanded="true" aria-controls="font-accordion-body">
+            <span class="accordion-header-left">
+              <span class="accordion-header-icon" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 7V4h16v3"/>
+                  <path d="M9 20h6"/>
+                  <path d="M12 4v16"/>
+                </svg>
+              </span>
+              <span>Font Customization</span>
+            </span>
+            <svg class="accordion-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div class="accordion-body" id="font-accordion-body" role="region">
+            <div class="accordion-body-inner">
+              <!-- Font Name -->
+              <div class="field">
+                <label class="field-label" for="font-name-select">Font Name</label>
+                <select id="font-name-select" class="select">
+                  <option value="Literata" selected>Literata</option>
+                </select>
+                <p class="field-info">Select a system font for hardcoded subtitles</p>
+              </div>
+
+              <!-- Font Size + Outline Width -->
+              <div class="grid-2">
+                <div class="field">
+                  <label class="field-label" for="font-size-slider">
+                    <span>Font Size</span>
+                    <span class="value" id="font-size-value">12</span>
+                  </label>
+                  <input type="range" id="font-size-slider" class="slider" min="8" max="72" value="12" step="1">
+                  <p class="field-info">Subtitle font size in points</p>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="outline-slider">
+                    <span>Outline Width</span>
+                    <span class="value" id="outline-value">0</span>
+                  </label>
+                  <input type="range" id="outline-slider" class="slider" min="0" max="10" value="0" step="1">
+                  <p class="field-info">Border/outline thickness</p>
+                </div>
+              </div>
+
+              <!-- Font Color + Shadow Depth -->
+              <div class="grid-2">
+                <div class="field">
+                  <label class="field-label" for="font-color-picker">
+                    <span>Font Color</span>
+                  </label>
+                  <div class="color-row">
+                    <input type="color" id="font-color-picker" value="#FFFFFF" class="color-picker" aria-label="Font color">
+                    <input type="text" id="font-color-text" value="#FFFFFF" class="color-hex" maxlength="7" spellcheck="false" aria-label="Hex color value">
+                  </div>
+                  <p class="field-info">Text color (hex)</p>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="shadow-slider">
+                    <span>Shadow Depth</span>
+                    <span class="value" id="shadow-value">0</span>
+                  </label>
+                  <input type="range" id="shadow-slider" class="slider" min="0" max="10" value="0" step="1">
+                  <p class="field-info">Shadow offset in pixels</p>
+                </div>
+              </div>
+
+              <!-- Border Style + Alignment -->
+              <div class="grid-2">
+                <div class="field">
+                  <label class="field-label" for="border-style-select">Border Style</label>
+                  <select id="border-style-select" class="select">
+                    <option value="1" selected>Outline + Shadow</option>
+                    <option value="3">Opaque Box</option>
+                  </select>
+                  <p class="field-info">1=outline+shadow, 3=opaque box</p>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="alignment-select">Alignment</label>
+                  <select id="alignment-select" class="select">
+                    <option value="1">Bottom Left</option>
+                    <option value="2" selected>Bottom Center</option>
+                    <option value="3">Bottom Right</option>
+                    <option value="5">Top Left</option>
+                    <option value="6">Top Center</option>
+                    <option value="7">Top Right</option>
+                    <option value="9">Mid Left</option>
+                    <option value="10">Mid Center</option>
+                    <option value="11">Mid Right</option>
+                  </select>
+                  <p class="field-info">SSA alignment values</p>
+                </div>
+              </div>
+
+              <!-- Vertical Margin -->
+              <div class="field">
+                <label class="field-label" for="margin-v-slider">
+                  <span>Vertical Margin</span>
+                  <span class="value" id="margin-v-value">20</span>
+                </label>
+                <input type="range" id="margin-v-slider" class="slider" min="0" max="200" value="20" step="5">
+                <p class="field-info">Distance from bottom edge in pixels</p>
+              </div>
+
+              <!-- Preview Font -->
+              <button type="button" class="btn btn-secondary btn-block" id="preview-btn" disabled>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                Preview Font
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. Generate Button -->
+        <button type="button" class="btn btn-primary btn-lg btn-block" id="generate-btn" disabled>
+          <span class="btn-spinner" aria-hidden="true"></span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon" aria-hidden="true">
+            <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/>
+          </svg>
+          <span class="btn-label">Generate Subtitles</span>
+        </button>
+      </section>
+
+      <!-- =========================================================
+           RIGHT COLUMN — Results
+           ========================================================= -->
+      <section class="panel results-panel" aria-label="Results">
+        <header class="panel-header">
+          <h2 class="panel-title">Results</h2>
+          <p class="panel-sub">Subtitled video, SRT, and font preview.</p>
+        </header>
+
+        <!-- 12. Progress Bar (visible only during processing) -->
+        <div class="progress-container" id="progress-container" hidden>
+          <div class="progress-header">
+            <span class="progress-label">Processing</span>
+            <span class="progress-pct" id="progress-pct">0%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="progress-bar" style="width:0%"></div>
+          </div>
+          <p class="progress-text" id="progress-text">Starting&hellip;</p>
+        </div>
+
+        <!-- 7. Font Preview (hardcode mode only) -->
+        <div class="block" id="preview-block">
+          <div class="block-label">
+            <span>Font Preview</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-tertiary)">hardcode only</span>
+          </div>
+          <div class="preview-frame">
+            <img id="preview-image" alt="Font preview" hidden>
+            <div class="preview-empty" id="preview-empty">
+              <div class="preview-empty-icon" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </div>
+              <p class="preview-empty-text">Click &ldquo;Preview Font&rdquo; to render a frame with your subtitle styling.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 8. Subtitled Video -->
+        <div class="block">
+          <div class="block-label">
+            <span>Subtitled Video</span>
+          </div>
+          <div class="video-frame">
+            <video id="result-video" controls preload="metadata" hidden></video>
+            <div class="video-empty" id="result-empty">
+              <div class="video-empty-icon" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="23 7 16 12 23 17 23 7"/>
+                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                </svg>
+              </div>
+              <p class="video-empty-text">Your subtitled video will appear here after processing.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 9. SRT Content (editable) -->
+        <div class="block">
+          <div class="block-label">
+            <span>SRT Content <span style="color:var(--text-tertiary);font-weight:400">(editable)</span></span>
+          </div>
+          <div class="srt-editor-wrap">
+            <div class="srt-editor-header">
+              <div class="srt-editor-header-left">
+                <span class="srt-dots" aria-hidden="true"><span class="srt-dot"></span><span class="srt-dot"></span><span class="srt-dot"></span></span>
+                <span>subtitles.srt</span>
+              </div>
+              <span id="srt-charset">UTF-8</span>
+            </div>
+            <textarea
+              id="srt-editor"
+              class="srt-editor"
+              spellcheck="false"
+              placeholder="1&#10;00:00:01,000 --&gt; 00:00:04,000&#10;Your subtitle text will appear here..."
+              aria-label="SRT content"></textarea>
+            <div class="srt-editor-footer">
+              <span class="srt-line-count">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="8" y1="6" x2="21" y2="6"/>
+                  <line x1="8" y1="12" x2="21" y2="12"/>
+                  <line x1="8" y1="18" x2="21" y2="18"/>
+                  <line x1="3" y1="6" x2="3.01" y2="6"/>
+                  <line x1="3" y1="12" x2="3.01" y2="12"/>
+                  <line x1="3" y1="18" x2="3.01" y2="18"/>
+                </svg>
+                <span id="srt-line-count">0 lines</span>
+              </span>
+              <span id="srt-charcount">0 chars</span>
+            </div>
+          </div>
+          <p class="block-info">Edit the SRT content below, then click Regenerate Video</p>
+        </div>
+
+        <!-- 10. Actions Row -->
+        <div class="actions-row">
+          <button type="button" class="btn btn-secondary" id="download-srt-btn" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download SRT
+          </button>
+          <button type="button" class="btn btn-secondary" id="regenerate-btn" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 12a9 9 0 1 1-3-6.7L21 8"/>
+              <polyline points="21 3 21 8 16 8"/>
+            </svg>
+            Regenerate Video
+          </button>
+        </div>
+
+        <!-- 11. Error Display -->
+        <div class="error-display" id="error-display" hidden role="alert">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <p id="error-text"></p>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="static/js/app.js"></script>
+</body>
+</html>
