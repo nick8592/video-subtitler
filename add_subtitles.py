@@ -47,7 +47,7 @@ MAX_SEGMENT_DURATION_S = 5
 # Minimum gap between split segments (seconds)
 MIN_SPLIT_GAP_S = 0.15
 HARDCODE_STYLE = "FontName=Literata,FontSize=12,PrimaryColour=&HFFFFFF,Outline=0,Shadow=0,BorderStyle=1,Alignment=2,MarginV=20"
-HARDCODE_CODEC = "libx265"
+HARDCODE_CODEC = "libx264"
 
 
 def hex_to_ass_color(hex_color: str) -> str:
