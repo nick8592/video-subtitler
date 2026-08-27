@@ -49,6 +49,36 @@ MIN_SPLIT_GAP_S = 0.15
 HARDCODE_STYLE = "FontName=Literata,FontSize=12,PrimaryColour=&HFFFFFF,Outline=0,Shadow=0,BorderStyle=1,Alignment=2,MarginV=20"
 HARDCODE_CODEC = "libx265"
 
+
+def hex_to_ass_color(hex_color: str) -> str:
+    """Convert HTML hex color (#RRGGBB or RRGGBB) to ASS color format (&HBBGGRR&)."""
+    hex_color = hex_color.lstrip("#")
+    if len(hex_color) != 6:
+        return "&HFFFFFF&"  # fallback to white
+    r, g, b = hex_color[0:2], hex_color[2:4], hex_color[4:6]
+    return f"&H{b}{g}{r}&"
+
+
+def build_force_style(
+    font_name: str = "Literata",
+    font_size: int = 12,
+    primary_colour: str = "&HFFFFFF&",
+    outline: int = 0,
+    shadow: int = 0,
+    border_style: int = 1,
+    alignment: int = 2,
+    margin_v: int = 20,
+) -> str:
+    """Build an ASS force_style string for FFmpeg's subtitles filter."""
+    return (
+        f"FontName={font_name},FontSize={font_size},"
+        f"PrimaryColour={primary_colour},"
+        f"Outline={outline},Shadow={shadow},"
+        f"BorderStyle={border_style},Alignment={alignment},"
+        f"MarginV={margin_v}"
+    )
+
+
 # Phrase-boundary markers: split after these words when re-segmenting
 _PHRASE_BREAKS = re.compile(r"[,.!?:;]|\b(and|but|so|or|because|however|while|although|though|yet|when|if|then|that|which|who)\b", re.IGNORECASE)
 
@@ -219,9 +249,15 @@ def _get_video_bitrate(video_path: Path) -> int | None:
         return None
 
 
-def hardcode_subtitle(video_path: Path, srt_path: Path, output_path: Path) -> None:
+def hardcode_subtitle(
+    video_path: Path,
+    srt_path: Path,
+    output_path: Path,
+    force_style: str | None = None,
+) -> None:
     escaped_srt = str(srt_path).replace(":", "\\:").replace("'", "\\'")
-    sub_filter = f"subtitles='{escaped_srt}':force_style='{HARDCODE_STYLE}'"
+    style = force_style if force_style is not None else HARDCODE_STYLE
+    sub_filter = f"subtitles='{escaped_srt}':force_style='{style}'"
 
     rotation = _get_video_rotation(video_path)
     has_rotation = rotation is not None
@@ -270,7 +306,61 @@ def hardcode_subtitle(video_path: Path, srt_path: Path, output_path: Path) -> No
     print(f"  Hardcoded{orientation} → {output_path.name} (~{target_kbps}kbps)")
 
 
-def process_videos(videos: list[Path], srt_only: bool, mux_only: bool, hardcode: bool, model_size: str, language: str | None = None) -> None:
+def generate_preview_frame(
+    video_path: Path,
+    srt_path: Path | None = None,
+    force_style: str | None = None,
+    output_image_path: Path | None = None,
+    sample_text: str = "Sample Subtitle Text",
+) -> Path:
+    """Extract 1 frame from video and burn a sample subtitle for font preview.
+
+    If srt_path is provided, uses the first subtitle entry.
+    Otherwise, creates a temporary SRT with sample_text.
+    Returns the path to the preview image (PNG).
+    """
+    style = force_style if force_style is not None else HARDCODE_STYLE
+
+    if srt_path is None or not srt_path.exists():
+        tmp_srt = Path(tempfile.mktemp(suffix=".srt"))
+        tmp_srt.write_text(f"1\n00:00:00,000 --> 00:00:05,000\n{sample_text}\n", encoding="utf-8")
+        srt_path = tmp_srt
+
+    if output_image_path is None:
+        output_image_path = Path(tempfile.mktemp(suffix=".png"))
+
+    escaped_srt = str(srt_path).replace(":", "\\:").replace("'", "\\'")
+    sub_filter = f"subtitles='{escaped_srt}':force_style='{style}'"
+
+    cmd = [
+        "ffmpeg", "-y",
+        "-i", str(video_path),
+        "-vf", sub_filter,
+        "-vframes", "1",
+        "-ss", "1",
+        str(output_image_path),
+    ]
+    subprocess.run(cmd, check=True, capture_output=True)
+
+    return output_image_path
+
+
+def process_videos(
+    videos: list[Path],
+    srt_only: bool,
+    mux_only: bool,
+    hardcode: bool,
+    model_size: str,
+    language: str | None = None,
+    font_name: str = "Literata",
+    font_size: int = 12,
+    font_color: str = "#FFFFFF",
+    outline: int = 0,
+    shadow: int = 0,
+    border_style: int = 1,
+    alignment: int = 2,
+    margin_v: int = 20,
+) -> None:
     print(f"Processing {len(videos)} video(s)\n")
 
     for video in videos:
@@ -297,7 +387,17 @@ def process_videos(videos: list[Path], srt_only: bool, mux_only: bool, hardcode:
                 print(f"  Output already exists — skipping (delete to re-run)")
             else:
                 if hardcode:
-                    hardcode_subtitle(video, srt_path, output_path)
+                    style = build_force_style(
+                        font_name=font_name,
+                        font_size=font_size,
+                        primary_colour=hex_to_ass_color(font_color),
+                        outline=outline,
+                        shadow=shadow,
+                        border_style=border_style,
+                        alignment=alignment,
+                        margin_v=margin_v,
+                    )
+                    hardcode_subtitle(video, srt_path, output_path, force_style=style)
                 else:
                     mux_subtitle(video, srt_path, output_path)
 
@@ -313,6 +413,14 @@ def main():
     parser.add_argument("--hardcode", action="store_true", help="Burn subtitles into video instead of soft mux")
     parser.add_argument("--model", default=MODEL_SIZE, help=f"Whisper model size (default: {MODEL_SIZE})")
     parser.add_argument("--language", default=LANGUAGE, help=f"Language code, e.g. en/zh/id, or 'auto' to detect (default: {LANGUAGE})")
+    parser.add_argument("--font-name", default="Literata", help="Font name for hardcoded subtitles (default: Literata)")
+    parser.add_argument("--font-size", type=int, default=12, help="Font size for hardcoded subtitles (default: 12)")
+    parser.add_argument("--font-color", default="#FFFFFF", help="Font color as hex (#RRGGBB) for hardcoded subtitles (default: #FFFFFF)")
+    parser.add_argument("--outline", type=int, default=0, help="Outline width for hardcoded subtitles (default: 0)")
+    parser.add_argument("--shadow", type=int, default=0, help="Shadow depth for hardcoded subtitles (default: 0)")
+    parser.add_argument("--border-style", type=int, default=1, choices=[1, 3], help="Border style: 1=outline+shadow, 3=opaque box (default: 1)")
+    parser.add_argument("--alignment", type=int, default=2, choices=[1,2,3,5,6,7,9,10,11], help="Subtitle alignment: 1-3=bottom left/center/right, 5-7=top left/center/right, 9-11=mid left/center/right (default: 2)")
+    parser.add_argument("--margin-v", type=int, default=20, help="Vertical margin in pixels for hardcoded subtitles (default: 20)")
     args = parser.parse_args()
 
     if args.file:
@@ -329,7 +437,12 @@ def main():
             print(f"No .mp4 files found in {args.path}")
             sys.exit(1)
 
-    process_videos(videos, args.srt, args.mux, args.hardcode, args.model, args.language)
+    process_videos(
+        videos, args.srt, args.mux, args.hardcode, args.model, args.language,
+        font_name=args.font_name, font_size=args.font_size, font_color=args.font_color,
+        outline=args.outline, shadow=args.shadow, border_style=args.border_style,
+        alignment=args.alignment, margin_v=args.margin_v,
+    )
 
 
 if __name__ == "__main__":
