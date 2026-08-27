@@ -1,8 +1,10 @@
 # Video Subtitler
 
-Batch generate and embed subtitles for `.mp4` videos using [faster-whisper](https://github.com/SYSTRAN/fater-whisper) (GPU-accelerated Whisper) and ffmpeg.
+Auto-generate and embed subtitles for `.mp4` videos using [faster-whisper](https://github.com/SYSTRAN/faster-whisper) (GPU-accelerated Whisper) and ffmpeg.
 
-Transcribes speech to `.srt`, then muxes subtitles into video as a toggleable soft subtitle track — no re-encode, original quality preserved. Also includes a Gradio web UI with model/device/compute selection, editable SRT, video regeneration, and SRT download.
+- **Soft subtitles** — mux as a toggleable track, no re-encode, original quality preserved
+- **Hardcoded subtitles** — burn into video for social media / GitHub
+- **Gradio web UI** — model/device/compute selection, editable SRT, video regeneration, SRT download
 
 ## Quick Start
 
@@ -12,18 +14,31 @@ cd video-subtitler
 ./setup.sh
 ```
 
-That's it. `setup.sh` creates a venv, installs everything, and pre-downloads all Whisper models. Then:
+`setup.sh` creates a venv, installs everything, and pre-downloads all Whisper models.
+
+### CLI
 
 ```bash
 source .venv/bin/activate
-python3 add_subtitles.py /path/to/videos --srt
+python3 add_subtitles.py /path/to/videos
 ```
 
-Or launch the web UI:
+This runs the full pipeline: transcribe speech → generate `.srt` → mux soft subtitle track into video.
+
+### Web UI
 
 ```bash
 python3 app.py
 ```
+
+Opens a Gradio interface at `http://127.0.0.1:7860`.
+
+![Gradio Web UI with sample.mp4](example/gradio_ui.png)
+
+- **Model / Device / Compute** — choose Whisper model size, CPU or CUDA, and compute type
+- **Editable SRT** — edit the generated subtitle text and regenerate the video
+- **Regenerate Video** — burn or mux the edited SRT back into the video
+- **Download SRT** — download the `.srt` file directly
 
 ### Prerequisites
 
@@ -31,19 +46,6 @@ python3 app.py
 - Python 3.10+
 - [uv](https://docs.astral.sh/uv/) (recommended) or `python3-venv`
 - NVIDIA GPU with CUDA (recommended) — falls back to CPU automatically
-
-## Web UI
-
-```bash
-python3 app.py
-```
-
-Opens a Gradio interface at `http://127.0.0.1:7860` with:
-
-- **Model / Device / Compute** — choose Whisper model size, CPU or CUDA, and compute type
-- **Editable SRT** — edit the generated subtitle text and regenerate the video
-- **Regenerate Video** — burn or mux the edited SRT back into the video
-- **Download SRT** — download the `.srt` file directly
 
 ## Usage (CLI)
 
@@ -60,8 +62,11 @@ python3 add_subtitles.py /path/to/videos --srt
 # Mux existing .srt files into videos (skip transcription)
 python3 add_subtitles.py /path/to/videos --mux
 
-# Use a smaller/faster model (less VRAM, less accurate)
-python3 add_subtitles.py /path/to/videos --model medium
+# Process a single .mp4 file
+python3 add_subtitles.py /path/to/video.mp4 --file
+
+# Override model and language
+python3 add_subtitles.py /path/to/videos --model medium --language en
 ```
 
 ## Example
@@ -109,7 +114,7 @@ python3 add_subtitles.py example
 For each `.mp4` in the target directory:
 
 1. **Extract audio** — 16 kHz mono WAV via ffmpeg
-2. **Transcribe** — faster-whisper `large-v3` model (GPU, float16), primary language `zh` with automatic English detection
+2. **Transcribe** — faster-whisper `large-v3` model (GPU, float16), language auto-detected
 3. **Save `.srt`** — written next to the original video
 4. **Mux** — embed `.srt` as a soft subtitle track (`mov_text`) into a new `_subtitled.mp4` (no re-encode)
 
@@ -123,15 +128,20 @@ Model, device, and compute type are selected via dropdowns in the interface. No 
 
 ### CLI
 
-Edit the constants at the top of `add_subtitles.py`:
+Set via environment variables or edit the constants at the top of `add_subtitles.py`:
 
-| Constant | Default | Description |
-|---|---|---|
-| `MODEL_SIZE` | `large-v3` | Whisper model size (`tiny`, `base`, `small`, `medium`, `large-v3`) |
-| `DEVICE` | `cuda` | `cuda` for GPU, `cpu` for CPU |
-| `COMPUTE_TYPE` | `float16` | `int8_float16` for less VRAM |
-| `LANGUAGE` | `en` | Primary language (Whisper auto-detects mixed segments) |
-| `VAD_FILTER` | `True` | Skip silence during transcription |
+| Constant | Env Variable | Default | Description |
+|---|---|---|---|
+| `MODEL_SIZE` | `WHISPER_MODEL` | `large-v3` | Whisper model size (`tiny`, `base`, `small`, `medium`, `large-v3`) |
+| `DEVICE` | `WHISPER_DEVICE` | `cuda` | `cuda` for GPU, `cpu` for CPU |
+| `COMPUTE_TYPE` | `WHISPER_COMPUTE_TYPE` | `float16` | `int8_float16` for less VRAM |
+| `LANGUAGE` | — | `auto` | Primary language code (e.g. `en`, `zh`), or `auto` to detect |
+| `VAD_FILTER` | — | `True` | Skip silence during transcription |
+
+## Acknowledgments
+
+- [faster-whisper](https://github.com/SYSTRAN/faster-whisper) — GPU-accelerated Whisper transcription using CTranslate2
+- [OpenAI Whisper](https://github.com/openai/whisper) — the original Whisper speech recognition model
 
 ## License
 
