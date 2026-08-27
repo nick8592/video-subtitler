@@ -264,7 +264,7 @@ with gr.Blocks(title="Video Subtitler") as demo:
                 )
                 mode_input = gr.Radio(
                     choices=["Soft subtitle (toggleable)", "Hardcode (burned in)"],
-                    value="Soft subtitle (toggleable)",
+                    value="Hardcode (burned in)",
                     label="Subtitle Mode",
                     info="Soft = can toggle on/off; Hardcode = always visible",
                 )
@@ -287,7 +287,7 @@ with gr.Blocks(title="Video Subtitler") as demo:
                     label="Compute Type",
                     info="Lower precision = less VRAM, slightly less accurate",
                 )
-            with gr.Accordion("Font Customization", open=False, visible=False) as font_accordion:
+            with gr.Accordion("Font Customization", open=False, visible=True) as font_accordion:
                 font_name_input = gr.Dropdown(
                     choices=get_system_fonts(),
                     value="Literata",
@@ -345,12 +345,12 @@ with gr.Blocks(title="Video Subtitler") as demo:
             submit_btn = gr.Button("Generate Subtitles", variant="primary", size="lg")
 
         with gr.Column():
-            video_output = gr.Video(label="Subtitled Video")
             preview_output = gr.Image(
                 label="Font Preview",
                 type="filepath",
-                visible=False,
+                visible=True,
             )
+            video_output = gr.Video(label="Subtitled Video")
             srt_output = gr.Textbox(
                 label="SRT Content (editable)",
                 lines=15,
