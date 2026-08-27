@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Subtitler — GPU-accelerated Whisper subtitles, 100% local</title>
+  <meta name="description" content="Auto-generate and embed subtitles for MP4 videos using faster-whisper and ffmpeg. Soft or hardcoded subtitles, font customization, 100% local, GPU-accelerated.">
+  <meta name="theme-color" content="#0a0a0b">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    /* =========================================================
+       Theme tokens
+       ========================================================= */
+    :root {
+      --bg: #0a0a0b;
+      --surface: #141415;
+      --surface-2: #1a1a1c;
+      --border: #222224;
+      --border-strong: #2e2e31;
+      --text: #ededed;
+      --text-secondary: #8a8a8a;
+      --text-tertiary: #5a5a5a;
+      --accent: #10b981;
+      --accent-hover: #34d399;
+      --accent-soft: rgba(16, 185, 129, 0.12);
+      --accent-glow: rgba(16, 185, 129, 0.25);
+      --code-bg: #0d0d0e;
+      --code-border: #1d1d20;
+      --selection: rgba(16, 185, 129, 0.35);
+      --shadow-soft: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 40px -12px rgba(0, 0, 0, 0.6);
+      --noise-opacity: 0.04;
+      --max-w: 1200px;
+      --radius: 12px;
+      --radius-lg: 16px;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    [data-theme="light"] {
+      --bg: #fafafa;
+      --surface: #ffffff;
+      --surface-2: #f5f5f5;
+      --border: #e5e5e5;
+      --border-strong: #d4d4d4;
+      --text: #171717;
+      --text-secondary: #737373;
+      --text-tertiary: #a3a3a3;
+      --accent: #059669;
+      --accent-hover: #10b981;
+      --accent-soft: rgba(5, 150, 105, 0.08);
+      --accent-glow: rgba(5, 150, 105, 0.18);
+      --code-bg: #f4f4f5;
+      --code-border: #e4e4e7;
+      --selection: rgba(5, 150, 105, 0.25);
+      --shadow-soft: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 12px 40px -16px rgba(0, 0, 0, 0.12);
+      --noise-opacity: 0.025;
+    }
+
+    /* =========================================================
+       Reset
+       ========================================================= */
+    *, *::before, *::after { box-sizing: border-box; }
+    * { margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      overflow-x: hidden;
+      transition: background 0.3s var(--ease), color 0.3s var(--ease);
+    }
+    ::selection { background: var(--selection); color: var(--text); }
+    img, svg, video { display: block; max-width: 100%; }
+    button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+    a { color: inherit; text-decoration: none; }
+    input, textarea, select { font: inherit; }
+
+    /* =========================================================
+       Background atmosphere
+       ========================================================= */
+    .bg-mesh {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .bg-mesh::before,
+    .bg-mesh::after {
+      content: '';
+      position: absolute;
+      width: 70vmax;
+      height: 70vmax;
+      border-radius: 50%;
+      filter: blur(140px);
+      opacity: 0.35;
+      will-change: transform;
+    }
+    .bg-mesh::before {
+      background: radial-gradient(circle at center, var(--accent) 0%, transparent 60%);
+      top: -30vmax;
+      left: -10vmax;
+      animation: mesh-drift-a 28s var(--ease) infinite;
+    }
+    .bg-mesh::after {
+      background: radial-gradient(circle at center, #6366f1 0%, transparent 60%);
+      bottom: -35vmax;
+      right: -15vmax;
+      animation: mesh-drift-b 32s var(--ease) infinite;
+    }
+    [data-theme="light"] .bg-mesh::before { opacity: 0.18; }
+    [data-theme="light"] .bg-mesh::after { opacity: 0.14; background: radial-gradient(circle at center, #818cf8 0%, transparent 60%); }
+
+    .bg-noise {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      opacity: var(--noise-opacity);
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' /%3E%3C/svg%3E");
+      mix-blend-mode: overlay;
+    }
+
+    @keyframes mesh-drift-a {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(8vw, 4vh) scale(1.08); }
+      66% { transform: translate(-4vw, 6vh) scale(0.95); }
+    }
+    @keyframes mesh-drift-b {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(-6vw, -5vh) scale(1.05); }
+      66% { transform: translate(5vw, -3vh) scale(0.92); }
+    }
+
+    /* =========================================================
+       Layout primitives
+       ========================================================= */
+    .container {
+      width: 100%;
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    .section {
+      padding: 120px 0;
+      position: relative;
+    }
+    @media (max-width: 768px) {
+      .section { padding: 80px 0; }
+    }
+
+    /* =========================================================
+       Typography
+       ========================================================= */
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding: 6px 12px;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-soft);
+      border-radius: 100px;
+      margin-bottom: 24px;
+    }
+    .eyebrow::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+
+    .section-title {
+      font-size: 40px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+    .section-subtitle {
+      font-size: 17px;
+      color: var(--text-secondary);
+      max-width: 600px;
+      line-height: 1.6;
+    }
+
+    .section-header {
+      margin-bottom: 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    @media (min-width: 900px) {
+      .section-header .section-subtitle { font-size: 18px; }
+    }
+
+    /* =========================================================
+       Navigation
+       ========================================================= */
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 16px 0;
+      transition: all 0.3s var(--ease);
+    }
+    .nav.scrolled {
+      background: color-mix(in srgb, var(--bg) 80%, transparent);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 15px;
+      letter-spacing: -0.01em;
+      color: var(--text);
+    }
+    .nav-brand-mark {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--accent-soft);
+      border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+      border-radius: 8px;
+      color: var(--accent);
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: all 0.2s var(--ease);
+    }
+    .nav-link:hover { color: var(--text); background: var(--surface-2); }
+    .nav-icon-btn {
+      width: 36px;
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      color: var(--text-secondary);
+      transition: all 0.2s var(--ease);
+      border: 1px solid transparent;
+    }
+    .nav-icon-btn:hover {
+      color: var(--text);
+      background: var(--surface-2);
+      border-color: var(--border);
+    }
+    .nav-open-app {
+      padding: 8px 14px;
+      background: var(--text);
+      color: var(--bg);
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s var(--ease);
+    }
+    .nav-open-app:hover {
+      background: var(--accent-hover);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+    @media (max-width: 640px) {
+      .nav-open-app span { display: none; }
+      .nav-open-app { padding: 8px 10px; }
+      .nav-link span { display: none; }
+    }
+
+    /* =========================================================
+       Hero
+       ========================================================= */
+    .hero {
+      padding: 180px 0 140px;
+      position: relative;
+      overflow: hidden;
+    }
+    @media (max-width: 768px) {
+      .hero { padding: 140px 0 80px; }
+    }
+    .hero-grid-bg {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 56px 56px;
+      mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+      opacity: 0.4;
+      z-index: -1;
+    }
+    .hero-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+    }
+    .hero-title {
+      font-size: clamp(40px, 7vw, 72px);
+      font-weight: 800;
+      letter-spacing: -0.035em;
+      line-height: 1.04;
+      color: var(--text);
+      max-width: 900px;
+      margin-bottom: 24px;
+    }
+    .hero-title .accent {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .hero-sub {
+      font-size: clamp(16px, 2vw, 20px);
+      color: var(--text-secondary);
+      max-width: 640px;
+      margin-bottom: 40px;
+      line-height: 1.55;
+    }
+    .hero-ctas {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 56px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 500;
+      transition: all 0.2s var(--ease);
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #04140d;
+      box-shadow: 0 0 0 0 var(--accent-glow), 0 6px 24px -6px var(--accent-glow);
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 0 0 4px var(--accent-soft), 0 12px 32px -8px var(--accent-glow);
+    }
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border-color: var(--border);
+    }
+    .btn-secondary:hover {
+      background: var(--surface-2);
+      border-color: var(--border-strong);
+      transform: translateY(-1px);
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      max-width: 720px;
+      width: 100%;
+      padding: 20px 28px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-soft);
+    }
+    .hero-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .hero-stat-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      font-family: 'Inter', sans-serif;
+    }
+    .hero-stat-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    @media (max-width: 640px) {
+      .hero-stats { grid-template-columns: repeat(2, 1fr); gap: 16px 24px; padding: 20px; }
+    }
+
+    /* =========================================================
+       Features grid
+       ========================================================= */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 900px) {
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 640px) {
+      .features-grid { grid-template-columns: 1fr; }
+    }
+    .feature-card {
+      position: relative;
+      padding: 28px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      transition: all 0.3s var(--ease);
+      overflow: hidden;
+    }
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top right, var(--accent-soft), transparent 60%);
+      opacity: 0;
+      transition: opacity 0.3s var(--ease);
+      pointer-events: none;
+    }
+    .feature-card:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-soft);
+    }
+    .feature-card:hover::before { opacity: 1; }
+    .feature-icon {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--accent-soft);
+      border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+      border-radius: 10px;
+      color: var(--accent);
+      margin-bottom: 20px;
+      transition: all 0.3s var(--ease);
+    }
+    .feature-card:hover .feature-icon {
+      transform: scale(1.05);
+      box-shadow: 0 0 0 4px var(--accent-soft);
+    }
+    .feature-title {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+      position: relative;
+    }
+    .feature-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      position: relative;
+    }
+
+    /* =========================================================
+       How it works (steps)
+       ========================================================= */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      position: relative;
+    }
+    @media (max-width: 900px) {
+      .steps { grid-template-columns: 1fr; }
+    }
+    .step {
+      padding: 32px 28px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      margin-left: -1px;
+      transition: all 0.3s var(--ease);
+    }
+    @media (min-width: 901px) {
+      .step:first-child { margin-left: 0; }
+      .step:hover {
+        border-color: var(--accent);
+        z-index: 1;
+      }
+    }
+    @media (max-width: 900px) {
+      .step { margin-left: 0; margin-top: -1px; }
+      .step:first-child { margin-top: 0; }
+      .step:hover { border-color: var(--accent); }
+    }
+    .step-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .step-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+    }
+    .step-icon {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+    }
+    .step-title {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .step-desc {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    /* =========================================================
+       Quick start / code block
+       ========================================================= */
+    .quickstart {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 56px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .quickstart { grid-template-columns: 1fr; gap: 32px; }
+    }
+    .quickstart-info h3 {
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .quickstart-info p {
+      color: var(--text-secondary);
+      font-size: 15px;
+      margin-bottom: 24px;
+    }
+    .quickstart-prereqs {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .quickstart-prereqs li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    .quickstart-prereqs li svg {
+      flex-shrink: 0;
+      margin-top: 3px;
+      color: var(--accent);
+    }
+
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--code-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-soft);
+    }
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--code-border);
+      background: var(--surface-2);
+    }
+    .code-dots {
+      display: flex;
+      gap: 6px;
+    }
+    .code-dots span {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: var(--border-strong);
+    }
+    .code-dots span:nth-child(1) { background: #ef4444; opacity: 0.6; }
+    .code-dots span:nth-child(2) { background: #eab308; opacity: 0.6; }
+    .code-dots span:nth-child(3) { background: #22c55e; opacity: 0.6; }
+    .code-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.02em;
+    }
+    .code-copy {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-secondary);
+      padding: 4px 10px;
+      border: 1px solid var(--code-border);
+      border-radius: 6px;
+      transition: all 0.2s var(--ease);
+    }
+    .code-copy:hover { color: var(--text); border-color: var(--border-strong); }
+    .code-copy.copied { color: var(--accent); border-color: var(--accent); }
+    .code-body {
+      padding: 20px 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13.5px;
+      line-height: 1.85;
+      color: var(--text);
+      overflow-x: auto;
+    }
+    .code-body .comment { color: var(--text-tertiary); }
+    .code-body .prompt { color: var(--accent); user-select: none; }
+    .code-body .cmd { color: var(--accent); font-weight: 500; }
+    .code-body .flag { color: #f59e0b; }
+    .code-body .string { color: #a5b4fc; }
+    .code-note {
+      padding: 14px 24px;
+      background: var(--surface-2);
+      border-top: 1px solid var(--code-border);
+      font-size: 13px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .code-note strong { color: var(--text); font-weight: 600; }
+    .code-note code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      color: var(--accent);
+      background: var(--accent-soft);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    /* =========================================================
+       Footer
+       ========================================================= */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 48px 0;
+      margin-top: 40px;
+    }
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+    .footer-meta {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      font-size: 13px;
+      color: var(--text-tertiary);
+    }
+    .footer-meta a {
+      color: var(--text-secondary);
+      transition: color 0.2s var(--ease);
+    }
+    .footer-meta a:hover { color: var(--accent); }
+    .footer-meta-divider {
+      width: 4px;
+      height: 4px;
+      background: var(--border-strong);
+      border-radius: 50%;
+    }
+    .footer-built {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-tertiary);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+    .footer-built strong { color: var(--text-secondary); font-weight: 500; }
+
+    /* =========================================================
+       Fade-in on scroll
+       ========================================================= */
+    .reveal {
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.8s var(--ease), transform 0.8s var(--ease);
+    }
+    .reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { opacity: 1; transform: none; transition: none; }
+      *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+    }
+
+    /* =========================================================
+       Focus states
+       ========================================================= */
+    a:focus-visible, button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Background atmosphere -->
+  <div class="bg-mesh" aria-hidden="true"></div>
+  <div class="bg-noise" aria-hidden="true"></div>
+
+  <!-- =========================================================
+       Navigation
+       ========================================================= -->
+  <nav class="nav" id="nav">
+    <div class="container nav-inner">
+      <a href="#top" class="nav-brand">
+        <span class="nav-brand-mark" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="2"/>
+            <path d="M2 9h20"/>
+            <path d="M7 14h6"/>
+            <path d="M7 17h4"/>
+          </svg>
+        </span>
+        <span>Video Subtitler</span>
+      </a>
+      <div class="nav-actions">
+        <a href="https://github.com/nick8592/video-subtitler" class="nav-link" target="_blank" rel="noopener" aria-label="GitHub repository">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-1.93c-3.2.7-3.87-1.54-3.87-1.54-.52-1.32-1.27-1.68-1.27-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.25 3.34.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.28 1.18-3.08-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.16 1.18.92-.26 1.91-.39 2.89-.39.98 0 1.97.13 2.89.39 2.2-1.49 3.16-1.18 3.16-1.18.62 1.58.23 2.75.11 3.04.74.8 1.18 1.82 1.18 3.08 0 4.42-2.7 5.39-5.26 5.68.41.35.78 1.05.78 2.12v3.14c0 .31.21.67.8.55C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/>
+          </svg>
+          <span>GitHub</span>
+        </a>
+        <button class="nav-icon-btn" id="theme-toggle" aria-label="Toggle theme" title="Toggle theme">
+          <svg id="theme-icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
+          </svg>
+          <svg id="theme-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+        <a href="/app" class="nav-open-app">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M7 17 17 7"/>
+            <path d="M7 7h10v10"/>
+          </svg>
+          <span>Open App</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <main id="top">
+    <!-- =========================================================
+         Hero
+         ========================================================= -->
+    <section class="hero">
+      <div class="hero-grid-bg" aria-hidden="true"></div>
+      <div class="container hero-inner">
+        <div class="eyebrow reveal">faster-whisper · ffmpeg · 100% local</div>
+        <h1 class="hero-title reveal">
+          Subtitles,<br><span class="accent">automatically.</span>
+        </h1>
+        <p class="hero-sub reveal">
+          Auto-generate and embed subtitles for MP4 videos using GPU-accelerated Whisper. Soft tracks for toggling, hardcoded for socials, full font control — and your video never leaves your machine.
+        </p>
+        <div class="hero-ctas reveal">
+          <a href="/app" class="btn btn-primary">
+            Get Started
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+            </svg>
+          </a>
+          <a href="https://github.com/nick8592/video-subtitler" target="_blank" rel="noopener" class="btn btn-secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-1.93c-3.2.7-3.87-1.54-3.87-1.54-.52-1.32-1.27-1.68-1.27-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.25 3.34.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.28 1.18-3.08-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.16 1.18.92-.26 1.91-.39 2.89-.39.98 0 1.97.13 2.89.39 2.2-1.49 3.16-1.18 3.16-1.18.62 1.58.23 2.75.11 3.04.74.8 1.18 1.82 1.18 3.08 0 4.42-2.7 5.39-5.26 5.68.41.35.78 1.05.78 2.12v3.14c0 .31.21.67.8.55C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/>
+            </svg>
+            View on GitHub
+          </a>
+        </div>
+        <div class="hero-stats reveal">
+          <div class="hero-stat">
+            <span class="hero-stat-value">100%</span>
+            <span class="hero-stat-label">local</span>
+          </div>
+          <div class="hero-stat">
+            <span class="hero-stat-value">CUDA</span>
+            <span class="hero-stat-label">accelerated</span>
+          </div>
+          <div class="hero-stat">
+            <span class="hero-stat-value">0s</span>
+            <span class="hero-stat-label">re-encode</span>
+          </div>
+          <div class="hero-stat">
+            <span class="hero-stat-value">MIT</span>
+            <span class="hero-stat-label">licensed</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         Features
+         ========================================================= -->
+    <section class="section">
+      <div class="container">
+        <div class="section-header reveal">
+          <span class="eyebrow">What's inside</span>
+          <h2 class="section-title">Built for the entire subtitle pipeline.</h2>
+          <p class="section-subtitle">From the moment you drop an MP4 to the moment you export, every step is handled on-device — fast, private, and under your control.</p>
+        </div>
+        <div class="features-grid">
+          <!-- Soft Subtitles -->
+          <div class="feature-card reveal">
+            <div class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="5" width="20" height="14" rx="2"/>
+                <path d="M6 11h4"/>
+                <path d="M6 14h8"/>
+                <path d="m14 11 4-2"/>
+                <path d="m14 14 4 2"/>
+              </svg>
+            </div>
+            <h3 class="feature-title">Soft Subtitles</h3>
+            <p class="feature-desc">Mux as a toggleable track inside the MP4. No re-encode, original quality preserved — viewers can switch on or off.</p>
+          </div>
+          <!-- Hardcoded Subtitles -->
+          <div class="feature-card reveal">
+            <div class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+              </svg>
+            </div>
+            <h3 class="feature-title">Hardcoded Subtitles</h3>
+            <p class="feature-desc">Burn into the video frame for Instagram, TikTok, and GitHub previews where soft tracks aren't supported.</p>
+          </div>
+          <!-- Font Customization -->
+          <div class="feature-card reveal">
+            <div class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 7V4h16v3"/>
+                <path d="M9 20h6"/>
+                <path d="M12 4v16"/>
+              </svg>
+            </div>
+            <h3 class="feature-title">Font Customization</h3>
+            <p class="feature-desc">Pick the family, size, color, outline, shadow, alignment and vertical margin. Preview a single frame before generating the whole video.</p>
+          </div>
+          <!-- GPU Accelerated -->
+          <div class="feature-card reveal">
+            <div class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="4" width="16" height="16" rx="2"/>
+                <rect x="9" y="9" width="6" height="6"/>
+                <path d="M9 1v3"/>
+                <path d="M15 1v3"/>
+                <path d="M9 20v3"/>
+                <path d="M15 20v3"/>
+                <path d="M20 9h3"/>
+                <path d="M20 14h3"/>
+                <path d="M1 9h3"/>
+                <path d="M1 14h3"/>
+              </svg>
+            </div>
+            <h3 class="feature-title">GPU Accelerated</h3>
+            <p class="feature-desc">CUDA-powered faster-whisper with CTranslate2 runs `large-v3` in float16. No GPU? It automatically falls back to CPU with int8.</p>
+          </div>
+          <!-- Editable SRT -->
+          <div class="feature-card reveal">
+            <div class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </div>
+            <h3 class="feature-title">Editable SRT</h3>
+            <p class="feature-desc">Fix a name, tighten a line, swap wording. Edit the generated subtitles in the UI and regenerate the video instantly.</p>
+          </div>
+          <!-- 100% Local -->
+          <div class="feature-card reveal">
+            <div class="feature-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+            <h3 class="feature-title">100% Local</h3>
+            <p class="feature-desc">All inference runs on your machine. No API keys, no cloud uploads, no telemetry. Your footage stays on your disk.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         How it works
+         ========================================================= -->
+    <section class="section">
+      <div class="container">
+        <div class="section-header reveal">
+          <span class="eyebrow">How it works</span>
+          <h2 class="section-title">Three steps. Zero cloud calls.</h2>
+          <p class="section-subtitle">ffmpeg extracts audio, faster-whisper transcribes, ffmpeg muxes it back. The whole loop runs locally in seconds.</p>
+        </div>
+        <div class="steps">
+          <div class="step reveal">
+            <div class="step-header">
+              <span class="step-num">01 — INPUT</span>
+              <div class="step-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+              </div>
+            </div>
+            <h3 class="step-title">Upload</h3>
+            <p class="step-desc">Drop one or many MP4 files into the web UI. ffmpeg extracts a 16 kHz mono WAV track from each one — no upload, no waiting.</p>
+          </div>
+          <div class="step reveal">
+            <div class="step-header">
+              <span class="step-num">02 — TRANSCRIBE</span>
+              <div class="step-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+                </svg>
+              </div>
+            </div>
+            <h3 class="step-title">Generate</h3>
+            <p class="step-desc">faster-whisper detects the language and writes a perfectly-timed `.srt`. CUDA by default, CPU fallback if no GPU is found.</p>
+          </div>
+          <div class="step reveal">
+            <div class="step-header">
+              <span class="step-num">03 — EXPORT</span>
+              <div class="step-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+              </div>
+            </div>
+            <h3 class="step-title">Download</h3>
+            <p class="step-desc">Get back a `_subtitled.mp4` with a toggleable track (or burned-in for socials) plus the standalone `.srt` file for editing elsewhere.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         Quick start
+         ========================================================= -->
+    <section class="section">
+      <div class="container">
+        <div class="section-header reveal">
+          <span class="eyebrow">Quick start</span>
+          <h2 class="section-title">Up and running in one script.</h2>
+          <p class="section-subtitle">`setup.sh` creates a venv, installs dependencies, and pre-downloads every Whisper model size. Then start the web UI.</p>
+        </div>
+        <div class="quickstart">
+          <div class="quickstart-info reveal">
+            <h3>Prerequisites</h3>
+            <p>Two system tools and a Python environment — that's it.</p>
+            <ul class="quickstart-prereqs">
+              <li>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span><strong style="color:var(--text);font-weight:500">ffmpeg</strong> — install via <code style="font-family:'JetBrains Mono',monospace;font-size:13px;background:var(--surface-2);padding:2px 6px;border-radius:4px">apt install ffmpeg</code> or <code style="font-family:'JetBrains Mono',monospace;font-size:13px;background:var(--surface-2);padding:2px 6px;border-radius:4px">brew install ffmpeg</code></span>
+              </li>
+              <li>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span><strong style="color:var(--text);font-weight:500">Python 3.10+</strong> with <code style="font-family:'JetBrains Mono',monospace;font-size:13px;background:var(--surface-2);padding:2px 6px;border-radius:4px">uv</code> recommended (or python3-venv)</span>
+              </li>
+              <li>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span><strong style="color:var(--text);font-weight:500">NVIDIA GPU with CUDA</strong> recommended — CPU mode works automatically</span>
+              </li>
+            </ul>
+          </div>
+          <div class="reveal">
+            <div class="code-block">
+              <div class="code-header">
+                <div class="code-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+                <span class="code-title">~/video-subtitler</span>
+                <button class="code-copy" id="copy-btn" type="button">copy</button>
+              </div>
+              <pre class="code-body"><code><span class="prompt">$ </span><span class="cmd">git clone</span> https://github.com/nick8592/video-subtitler.git
+<span class="prompt">$ </span><span class="cmd">cd</span> video-subtitler
+<span class="prompt">$ </span><span class="cmd">./setup.sh</span>
+<span class="comment">  → creates venv, installs deps, pre-downloads Whisper models</span>
+<span class="prompt">$ </span><span class="cmd">python3</span> app.py</code></pre>
+              <div class="code-note">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+                </svg>
+                <span>Opens the web UI at <code>http://127.0.0.1:7860</code></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         Closing CTA
+         ========================================================= -->
+    <section class="section">
+      <div class="container">
+        <div class="reveal" style="text-align:center;padding:56px 32px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-soft);position:relative;overflow:hidden">
+          <div style="position:absolute;inset:0;background:radial-gradient(ellipse at center top,var(--accent-soft),transparent 60%);pointer-events:none"></div>
+          <div style="position:relative">
+            <h2 style="font-size:32px;font-weight:700;letter-spacing:-0.02em;margin-bottom:12px;color:var(--text)">Ready to subtitle something?</h2>
+            <p style="color:var(--text-secondary);max-width:480px;margin:0 auto 28px;font-size:16px">Open the local web UI and start generating. Your files never leave your machine.</p>
+            <a href="/app" class="btn btn-primary" style="font-size:16px;padding:14px 24px">
+              Open the App
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- =========================================================
+       Footer
+       ========================================================= -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <span class="nav-brand-mark" aria-hidden="true" style="width:24px;height:24px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="2"/>
+            <path d="M2 9h20"/>
+            <path d="M7 14h6"/>
+            <path d="M7 17h4"/>
+          </svg>
+        </span>
+        <span>Video Subtitler</span>
+      </div>
+      <div class="footer-built">
+        <span>Built with</span>
+        <strong>faster-whisper</strong>
+        <span>+</span>
+        <strong>FFmpeg</strong>
+        <span>+</span>
+        <strong>CTranslate2</strong>
+      </div>
+      <div class="footer-meta">
+        <span>MIT License</span>
+        <span class="footer-meta-divider"></span>
+        <a href="https://github.com/nick8592/video-subtitler" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // =========================================================
+      // Theme handling — localStorage + prefers-color-scheme
+      // =========================================================
+      const root = document.documentElement;
+      const STORAGE_KEY = 'vs-theme';
+      const sunIcon = document.getElementById('theme-icon-sun');
+      const moonIcon = document.getElementById('theme-icon-moon');
+      const toggleBtn = document.getElementById('theme-toggle');
+
+      function getStoredTheme() {
+        try { return localStorage.getItem(STORAGE_KEY); } catch (e) { return null; }
+      }
+      function storeTheme(theme) {
+        try { localStorage.setItem(STORAGE_KEY, theme); } catch (e) {}
+      }
+      function systemPrefersLight() {
+        return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+      }
+
+      function applyTheme(theme, persist) {
+        root.setAttribute('data-theme', theme);
+        if (sunIcon && moonIcon) {
+          sunIcon.style.display = theme === 'light' ? 'block' : 'none';
+          moonIcon.style.display = theme === 'light' ? 'none' : 'block';
+        }
+        if (persist) storeTheme(theme);
+      }
+
+      // Initial: stored > system > dark default
+      const stored = getStoredTheme();
+      const initial = stored || (systemPrefersLight() ? 'light' : 'dark');
+      applyTheme(initial, false);
+
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', function () {
+          const current = root.getAttribute('data-theme') || 'dark';
+          applyTheme(current === 'dark' ? 'light' : 'dark', true);
+        });
+      }
+
+      // React to system changes only when user hasn't explicitly chosen
+      if (window.matchMedia) {
+        const mq = window.matchMedia('(prefers-color-scheme: light)');
+        const onChange = function (e) {
+          if (!getStoredTheme()) {
+            applyTheme(e.matches ? 'light' : 'dark', false);
+          }
+        };
+        if (mq.addEventListener) mq.addEventListener('change', onChange);
+        else if (mq.addListener) mq.addListener(onChange);
+      }
+
+      // =========================================================
+      // Nav background on scroll
+      // =========================================================
+      const nav = document.getElementById('nav');
+      let lastY = 0;
+      function onScroll() {
+        const y = window.scrollY || window.pageYOffset;
+        if (nav) nav.classList.toggle('scrolled', y > 8);
+        lastY = y;
+      }
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+
+      // =========================================================
+      // IntersectionObserver — reveal on scroll
+      // =========================================================
+      const reveals = document.querySelectorAll('.reveal');
+      if ('IntersectionObserver' in window) {
+        const io = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible');
+              io.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+        reveals.forEach(function (el) { io.observe(el); });
+      } else {
+        reveals.forEach(function (el) { el.classList.add('is-visible'); });
+      }
+
+      // =========================================================
+      // Copy code block
+      // =========================================================
+      const copyBtn = document.getElementById('copy-btn');
+      const codeEl = document.querySelector('.code-body');
+      if (copyBtn && codeEl) {
+        copyBtn.addEventListener('click', function () {
+          const text = codeEl.innerText;
+          const done = function () {
+            copyBtn.textContent = 'copied';
+            copyBtn.classList.add('copied');
+            setTimeout(function () {
+              copyBtn.textContent = 'copy';
+              copyBtn.classList.remove('copied');
+            }, 1500);
+          };
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, function () {
+              fallbackCopy(text); done();
+            });
+          } else {
+            fallbackCopy(text); done();
+          }
+        });
+      }
+      function fallbackCopy(text) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); } catch (e) {}
+        document.body.removeChild(ta);
+      }
+    })();
+  </script>
+</body>
+</html>
