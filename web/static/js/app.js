@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupSliders();
   setupButtons();
   setupAccordion();
+  setupSrtEditor();
 });
 
 // ── Theme ───────────────────────────────────────────────────────────────────
@@ -230,6 +231,7 @@ function setupButtons() {
   wire('generate-btn', onGenerate);
   wire('regenerate-btn', onRegenerate);
   wire('download-srt-btn', onDownloadSrt);
+  wire('download-video-btn', onDownloadVideo);
 }
 
 // ── Accordion ────────────────────────────────────────────────────────────────
@@ -244,23 +246,89 @@ function setupAccordion() {
   });
 }
 
-// ── Progress / Error UI ─────────────────────────────────────────────────────
-const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 52; // r=52 in the SVG viewBox
+function setupSrtEditor() {
+  const editor = document.getElementById('srt-editor');
+  if (!editor) return;
+  editor.addEventListener('input', updateSrtStats);
+}
 
-function setVideoProgress(percent, message) {
-  const overlay = document.getElementById('video-progress-overlay');
+function updateSrtStats() {
+  const editor = document.getElementById('srt-editor');
+  const lineCountEl = document.getElementById('srt-line-count');
+  const charCountEl = document.getElementById('srt-charcount');
+  if (!editor) return;
+  const text = editor.value;
+  const lines = text ? text.split('\n').length : 0;
+  const chars = text.length;
+  if (lineCountEl) lineCountEl.textContent = `${lines} line${lines !== 1 ? 's' : ''}`;
+  if (charCountEl) charCountEl.textContent = `${chars} char${chars !== 1 ? 's' : ''}`;
+}
+
+// ── Progress / Error UI ─────────────────────────────────────────────────────
+const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 52;
+
+let _progressAnimId = null;
+let _progressDisplayed = 0;
+let _progressFloor = 0;
+let _progressCeiling = 100;
+let _progressFinished = false;
+let _onProgressDone = null;
+const DRIFT_RATE = 0.15;
+
+function _animateProgress() {
+  const diff = _progressCeiling - _progressDisplayed;
+  if (!_progressFinished && Math.abs(diff) < 0.5) {
+    if (_progressDisplayed < _progressCeiling - 0.3) {
+      _progressDisplayed += DRIFT_RATE;
+      _progressDisplayed = Math.min(_progressDisplayed, _progressCeiling);
+    } else {
+      _progressDisplayed = _progressCeiling;
+    }
+  } else if (!_progressFinished) {
+    _progressDisplayed += diff * 0.15;
+  } else {
+    const finalDiff = 100 - _progressDisplayed;
+    if (finalDiff < 0.5) {
+      _progressDisplayed = 100;
+      _applyVideoProgress(100);
+      _progressAnimId = null;
+      if (_onProgressDone) { const cb = _onProgressDone; _onProgressDone = null; cb(); }
+      return;
+    }
+    _progressDisplayed += finalDiff * 0.2;
+  }
+  _applyVideoProgress(_progressDisplayed);
+  _progressAnimId = requestAnimationFrame(_animateProgress);
+}
+
+function _applyVideoProgress(percent) {
   const pctEl = document.getElementById('video-progress-pct');
-  const labelEl = document.getElementById('video-progress-label');
   const fillEl = document.getElementById('progress-circle-fill');
-  if (!overlay || !fillEl) return;
+  if (!fillEl) return;
   const clamped = Math.max(0, Math.min(100, percent));
   const offset = CIRCLE_CIRCUMFERENCE - (clamped / 100) * CIRCLE_CIRCUMFERENCE;
   fillEl.style.strokeDashoffset = offset;
   if (pctEl) pctEl.textContent = `${Math.round(clamped)}%`;
+}
+
+function setVideoProgress(percent, message) {
+  const labelEl = document.getElementById('video-progress-label');
+  const p = Math.max(0, Math.min(100, percent));
+  _progressFloor = p;
+  _progressCeiling = Math.min(p + 9, _progressFinished ? 100 : 99);
+  if (p >= 100) _progressFinished = true;
+  if (!_progressAnimId) _progressAnimId = requestAnimationFrame(_animateProgress);
   if (labelEl && typeof message === 'string') {
     const short = message.replace(/\.\.\.$/, '').split(' (')[0].trim();
     labelEl.textContent = short || 'Processing';
   }
+}
+
+function waitForProgressDone() {
+  return new Promise((resolve) => {
+    if (!_progressAnimId) { resolve(); return; }
+    _onProgressDone = resolve;
+  });
 }
 
 function showVideoProgress() {
@@ -279,7 +347,16 @@ function showVideoProgress() {
     video.setAttribute('hidden', '');
     video.style.display = 'none';
   }
-  setVideoProgress(0, 'Starting');
+  _progressDisplayed = 0;
+  _progressFloor = 0;
+  _progressCeiling = 9;
+  _progressFinished = false;
+  _onProgressDone = null;
+  _applyVideoProgress(0);
+  const labelEl = document.getElementById('video-progress-label');
+  if (labelEl) labelEl.textContent = 'Starting';
+  if (_progressAnimId) { cancelAnimationFrame(_progressAnimId); _progressAnimId = null; }
+  _progressAnimId = requestAnimationFrame(_animateProgress);
 }
 
 function hideVideoProgress() {
@@ -287,6 +364,10 @@ function hideVideoProgress() {
   if (overlay) {
     overlay.setAttribute('hidden', '');
     overlay.style.display = 'none';
+  }
+  if (_progressAnimId) {
+    cancelAnimationFrame(_progressAnimId);
+    _progressAnimId = null;
   }
 }
 
@@ -305,31 +386,15 @@ function updateSoftNotice() {
 }
 
 function setProgress(percent, message) {
-  const bar = document.getElementById('progress-bar');
-  const text = document.getElementById('progress-text');
-  const pct = document.getElementById('progress-pct');
-  if (bar) bar.style.width = `${Math.max(0, Math.min(100, percent))}%`;
-  if (text && typeof message === 'string') text.textContent = message;
-  if (pct) pct.textContent = `${Math.round(percent)}%`;
   setVideoProgress(percent, message);
 }
 
 function showProgress() {
-  const c = document.getElementById('progress-container');
-  if (c) {
-    c.removeAttribute('hidden');
-    c.style.display = '';
-  }
   setProgress(0, 'Starting...');
   showVideoProgress();
 }
 
 function hideProgress() {
-  const c = document.getElementById('progress-container');
-  if (c) {
-    c.setAttribute('hidden', '');
-    c.style.display = 'none';
-  }
   hideVideoProgress();
 }
 
@@ -413,10 +478,7 @@ async function onGenerate() {
   if (!currentVideoFile) { showError('Please upload a video first.'); return; }
   clearError();
   const dlVideoBtn = document.getElementById('download-video-btn');
-  if (dlVideoBtn) {
-    dlVideoBtn.setAttribute('hidden', '');
-    dlVideoBtn.style.display = 'none';
-  }
+  if (dlVideoBtn) dlVideoBtn.disabled = true;
   const softNotice = document.getElementById('soft-notice');
   if (softNotice) {
     softNotice.setAttribute('hidden', '');
@@ -435,7 +497,8 @@ async function onGenerate() {
   }
 }
 
-function handleDone(result) {
+async function handleDone(result) {
+  await waitForProgressDone();
   const video = document.getElementById('result-video');
   const empty = document.getElementById('result-empty');
   if (video && result.video_url) {
@@ -449,24 +512,21 @@ function handleDone(result) {
     empty.style.display = 'none';
   }
   const editor = document.getElementById('srt-editor');
-  if (editor && result.srt_content != null) editor.value = result.srt_content;
+  if (editor && result.srt_content != null) {
+    editor.value = result.srt_content;
+    updateSrtStats();
+  }
   if (result.video_url) {
     const m = result.video_url.match(/\/api\/files\/([^/]+)\//);
     if (m) currentJobId = m[1];
-    const dlBtn = document.getElementById('download-video-btn');
-    if (dlBtn) {
-      dlBtn.href = result.video_url;
-      dlBtn.removeAttribute('hidden');
-      dlBtn.style.display = '';
-    }
+    const dlVideoBtn = document.getElementById('download-video-btn');
+    if (dlVideoBtn) dlVideoBtn.disabled = false;
   }
   hideProgress();
-  // Enable download and regenerate buttons now that we have results
   const dlBtn = document.getElementById('download-srt-btn');
   if (dlBtn) dlBtn.disabled = false;
   const regBtn = document.getElementById('regenerate-btn');
   if (regBtn) regBtn.disabled = false;
-  // Re-enable generate button
   const genBtn = document.getElementById('generate-btn');
   if (genBtn) genBtn.disabled = false;
   updateSoftNotice();
@@ -516,10 +576,7 @@ async function onRegenerate() {
   }
   clearError();
   const dlVideoBtn = document.getElementById('download-video-btn');
-  if (dlVideoBtn) {
-    dlVideoBtn.setAttribute('hidden', '');
-    dlVideoBtn.style.display = 'none';
-  }
+  if (dlVideoBtn) dlVideoBtn.disabled = true;
   const softNotice = document.getElementById('soft-notice');
   if (softNotice) {
     softNotice.setAttribute('hidden', '');
@@ -576,4 +633,15 @@ function onDownloadSrt() {
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ── Download Video ────────────────────────────────────────────────────────────
+function onDownloadVideo() {
+  if (!currentJobId) { showError('No video to download. Generate subtitles first.'); return; }
+  const a = document.createElement('a');
+  a.href = `/api/files/${currentJobId}/video`;
+  a.download = 'subtitled.mp4';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
