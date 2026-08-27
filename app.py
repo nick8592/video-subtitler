@@ -106,7 +106,7 @@ def process_video(
 ):
     """Process an uploaded video and return the subtitled file + SRT content + state."""
     if video_file is None:
-        return None, "", None, None, "Please upload a video file."
+        return None, gr.update(visible=False), "", None, None, gr.update(visible=False), "Please upload a video file."
 
     video_path = Path(video_file)
 
@@ -115,7 +115,7 @@ def process_video(
     if MAX_VIDEO_DURATION_S > 0:
         duration = _get_video_duration(video_path)
         if duration > MAX_VIDEO_DURATION_S:
-            return None, "", None, None, f"Video is {duration:.0f}s — max is {MAX_VIDEO_DURATION_S}s. Please upload a shorter clip."
+            return None, gr.update(visible=False), "", None, None, gr.update(visible=False), f"Video is {duration:.0f}s — max is {MAX_VIDEO_DURATION_S}s. Please upload a shorter clip."
 
     tmpdir = tempfile.mkdtemp()
     srt_path = Path(tmpdir) / f"{video_path.stem}.srt"
@@ -124,9 +124,9 @@ def process_video(
 
     # ── CUDA check ────────────────────────────────────────────────────
     if device == "cuda" and not HAS_CUDA:
-        return None, "", None, None, "CUDA is not available on this system. Please switch Device to 'cpu' and Compute Type to 'int8'."
+        return None, gr.update(visible=False), "", None, None, gr.update(visible=False), "CUDA is not available on this system. Please switch Device to 'cpu' and Compute Type to 'int8'."
     if device == "cpu" and compute_type in ("float16", "int8_float16"):
-        return None, "", None, None, f"'{compute_type}' requires CUDA. Please switch Compute Type to 'int8'."
+        return None, gr.update(visible=False), "", None, None, gr.update(visible=False), f"'{compute_type}' requires CUDA. Please switch Compute Type to 'int8'."
 
     # ── Extract audio ──────────────────────────────────────────────────
     progress(0.1, desc="Extracting audio...")
@@ -141,6 +141,7 @@ def process_video(
     )
 
     # ── Mux / Hardcode ─────────────────────────────────────────────────
+    is_soft = mode != "Hardcode (burned in)"
     if mode == "Hardcode (burned in)":
         progress(0.7, desc="Burning subtitles into video (2-pass encode)...")
         style = build_force_style(
@@ -167,7 +168,13 @@ def process_video(
 
     pipeline_state = {"video_path": str(video_path), "tmpdir": tmpdir}
 
-    return str(output_path), srt_content, str(srt_path), pipeline_state, ""
+    soft_notice_md = (
+        '> ⚠️ **Soft subtitle notice:** The video preview above will not display the subtitle track because the HTML5 video player does not support embedded subtitle tracks (mov_text). The subtitles are present in the file — they will appear in players like **VLC**, **mpv**, or **IINA**. Switch to **Hardcode** mode if you need subtitles visible in all players.'
+        if is_soft
+        else ""
+    )
+
+    return str(output_path), gr.update(value=str(output_path), visible=True), srt_content, str(srt_path), pipeline_state, gr.update(value=soft_notice_md, visible=is_soft), ""
 
 
 def regenerate_video(
@@ -186,7 +193,7 @@ def regenerate_video(
 ):
     """Regenerate video from edited SRT content."""
     if pipeline_state is None or "video_path" not in pipeline_state or "tmpdir" not in pipeline_state:
-        return None, "", None, pipeline_state, "Generate subtitles first before regenerating."
+        return None, gr.update(visible=False), "", None, None, gr.update(visible=False), "Generate subtitles first before regenerating."
 
     video_path = Path(pipeline_state["video_path"])
     tmpdir = pipeline_state["tmpdir"]
@@ -198,6 +205,7 @@ def regenerate_video(
     output_path = Path(tmpdir) / f"{video_path.stem}_subtitled.mp4"
 
     # Mux or hardcode using the edited SRT
+    is_soft = mode != "Hardcode (burned in)"
     if mode == "Hardcode (burned in)":
         progress(0.1, desc="Burning edited subtitles into video (2-pass encode)...")
         style = build_force_style(
@@ -217,7 +225,13 @@ def regenerate_video(
 
     progress(1.0, desc="Done!")
 
-    return str(output_path), srt_text, str(edited_srt_path), pipeline_state, ""
+    soft_notice_md = (
+        '> ⚠️ **Soft subtitle notice:** The video preview above will not display the subtitle track because the HTML5 video player does not support embedded subtitle tracks (mov_text). The subtitles are present in the file — they will appear in players like **VLC**, **mpv**, or **IINA**. Switch to **Hardcode** mode if you need subtitles visible in all players.'
+        if is_soft
+        else ""
+    )
+
+    return str(output_path), gr.update(value=str(output_path), visible=True), srt_text, str(edited_srt_path), pipeline_state, gr.update(value=soft_notice_md, visible=is_soft), ""
 
 
 def preview_subtitle(
@@ -370,6 +384,15 @@ with gr.Blocks(title="Video Subtitler") as demo:
                 visible=True,
             )
             video_output = gr.Video(label="Subtitled Video")
+            video_download = gr.File(
+                label="Download Subtitled Video",
+                file_types=[".mp4"],
+                visible=False,
+            )
+            soft_notice = gr.Markdown(
+                "",
+                visible=False,
+            )
             srt_output = gr.Textbox(
                 label="SRT Content (editable)",
                 lines=15,
@@ -397,7 +420,7 @@ with gr.Blocks(title="Video Subtitler") as demo:
             font_name_input, font_size_input, font_color_input,
             outline_input, shadow_input, border_style_input, alignment_input, margin_v_input,
         ],
-        outputs=[video_output, srt_output, srt_download, pipeline_state, error_msg],
+        outputs=[video_output, video_download, srt_output, srt_download, pipeline_state, soft_notice, error_msg],
     )
 
     regenerate_btn.click(
@@ -407,7 +430,7 @@ with gr.Blocks(title="Video Subtitler") as demo:
             font_name_input, font_size_input, font_color_input,
             outline_input, shadow_input, border_style_input, alignment_input, margin_v_input,
         ],
-        outputs=[video_output, srt_output, srt_download, pipeline_state, error_msg],
+        outputs=[video_output, video_download, srt_output, srt_download, pipeline_state, soft_notice, error_msg],
     )
 
     # Toggle font customization visibility based on subtitle mode
@@ -422,6 +445,16 @@ with gr.Blocks(title="Video Subtitler") as demo:
         fn=lambda mode: gr.update(visible=(mode == "Hardcode (burned in)")),
         inputs=[mode_input],
         outputs=[preview_output],
+    )
+
+    # Toggle soft subtitle notice visibility based on mode
+    mode_input.change(
+        fn=lambda mode: gr.update(
+            visible=(mode == "Soft subtitle (toggleable)"),
+            value='> ⚠️ **Soft subtitle notice:** The video preview above will not display the subtitle track because the HTML5 video player does not support embedded subtitle tracks (mov_text). The subtitles are present in the file — they will appear in players like **VLC**, **mpv**, or **IINA**. Switch to **Hardcode** mode if you need subtitles visible in all players.' if mode == "Soft subtitle (toggleable)" else "",
+        ),
+        inputs=[mode_input],
+        outputs=[soft_notice],
     )
 
     preview_btn.click(
