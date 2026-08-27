@@ -141,24 +141,16 @@
     margin: 0 6px;
   }
 
-  /* Waveform — right half, centered vertically, large amplitude */
-  .waveform {
+  /* Waveform — right half, canvas-rendered real speech shape */
+  .waveform-canvas {
     position: absolute;
     left: 480px;
     right: 56px;
     top: 50%;
     transform: translateY(-50%);
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    opacity: 0.25;
+    height: 160px;
     z-index: 0;
-  }
-  .waveform span {
-    display: block;
-    width: 2.5px;
-    background: #34d399;
-    border-radius: 1px;
+    opacity: 0.3;
   }
 
   /* Thin separator */
@@ -228,12 +220,91 @@
 
     <div class="badge"><span class="badge-dot"></span>100% local</div>
 
-    <div class="waveform">
-      <span style="height:2px"></span><span style="height:14px"></span><span style="height:3px"></span><span style="height:10px"></span><span style="height:5px"></span><span style="height:18px"></span><span style="height:4px"></span><span style="height:16px"></span><span style="height:8px"></span><span style="height:22px"></span><span style="height:3px"></span><span style="height:28px"></span><span style="height:12px"></span><span style="height:6px"></span><span style="height:34px"></span><span style="height:18px"></span><span style="height:4px"></span><span style="height:40px"></span><span style="height:14px"></span><span style="height:46px"></span><span style="height:6px"></span><span style="height:52px"></span><span style="height:20px"></span><span style="height:4px"></span><span style="height:58px"></span><span style="height:26px"></span><span style="height:8px"></span><span style="height:64px"></span><span style="height:14px"></span><span style="height:70px"></span><span style="height:30px"></span><span style="height:4px"></span><span style="height:76px"></span><span style="height:18px"></span><span style="height:82px"></span><span style="height:6px"></span><span style="height:90px"></span><span style="height:36px"></span><span style="height:8px"></span><span style="height:96px"></span><span style="height:20px"></span><span style="height:102px"></span><span style="height:4px"></span><span style="height:108px"></span><span style="height:44px"></span><span style="height:10px"></span><span style="height:112px"></span><span style="height:22px"></span><span style="height:118px"></span><span style="height:6px"></span><span style="height:120px"></span><span style="height:48px"></span><span style="height:8px"></span><span style="height:120px"></span><span style="height:24px"></span><span style="height:120px"></span><span style="height:4px"></span><span style="height:120px"></span><span style="height:56px"></span><span style="height:10px"></span><span style="height:120px"></span><span style="height:20px"></span><span style="height:120px"></span><span style="height:6px"></span><span style="height:120px"></span><span style="height:60px"></span><span style="height:120px"></span><span style="height:12px"></span><span style="height:120px"></span><span style="height:4px"></span><span style="height:120px"></span><span style="height:120px"></span><span style="height:28px"></span><span style="height:120px"></span><span style="height:8px"></span><span style="height:120px"></span><span style="height:120px"></span>
-    </div>
+    <canvas class="waveform-canvas" id="waveform"></canvas>
 
     <div class="divider"></div>
     <div class="srt-preview"><span class="time">00:00:01,200 → 00:00:05,200</span>yeah the cloud is climbing through the hill</div>
   </div>
+  <script>
+    // Draw a realistic speech waveform — syllable bursts with fast attack / slow decay,
+    // separated by quiet gaps, each burst taller than the last (crescendo)
+    const canvas = document.getElementById('waveform');
+    const ctx = canvas.getContext('2d');
+
+    function draw() {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+
+      const w = rect.width;
+      const h = rect.height;
+      const mid = h / 2;
+      const maxAmp = h / 2 - 4;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Syllable bursts: [startTime(0-1), duration(0-1), peakAmplitude(0-1)]
+      // 4 syllable groups matching "yeah / the cloud / is climbing / through the hill"
+      const syllables = [
+        // "yeah" — small quiet utterance
+        { start: 0.02, dur: 0.12, peak: 0.25 },
+        // silence
+        // "the cloud" — medium, two bursts close together
+        { start: 0.20, dur: 0.08, peak: 0.40 },
+        { start: 0.30, dur: 0.12, peak: 0.55 },
+        // silence
+        // "is climbing" — louder, two bursts
+        { start: 0.50, dur: 0.06, peak: 0.50 },
+        { start: 0.58, dur: 0.18, peak: 0.80 },
+        // silence
+        // "through the hill" — loudest, three bursts close
+        { start: 0.80, dur: 0.06, peak: 0.70 },
+        { start: 0.88, dur: 0.04, peak: 0.60 },
+        { start: 0.94, dur: 0.06, peak: 1.00 },
+      ];
+
+      // Sample at each pixel column
+      for (let x = 0; x < w; x++) {
+        const t = x / w;
+        let amp = 0;
+
+        // Sum contributions from all syllable envelopes
+        for (const syl of syllables) {
+          const localT = (t - syl.start) / syl.dur;
+          if (localT < 0 || localT > 1) continue;
+
+          // Asymmetric envelope: fast attack (0-15%), slow decay (15-100%)
+          let env;
+          if (localT < 0.15) {
+            env = localT / 0.15; // fast attack
+          } else {
+            env = 1 - ((localT - 0.15) / 0.85); // slow decay
+          }
+          env = Math.max(0, env);
+
+          // Add voiced harmonics — mix of frequencies for realistic speech look
+          const f1 = Math.sin(localT * 42) * 0.6;
+          const f2 = Math.sin(localT * 67) * 0.25;
+          const f3 = Math.sin(localT * 13) * 0.15;
+          const noise = (Math.sin(localT * 127.3) * 0.3 + Math.sin(localT * 89.7) * 0.2);
+
+          const sample = (f1 + f2 + f3 + noise) * env * syl.peak;
+          amp += Math.abs(sample);
+        }
+
+        // Clamp
+        amp = Math.min(1, amp);
+
+        // Draw the bar (mirrored vertically for full waveform look)
+        const barH = amp * maxAmp;
+        ctx.fillStyle = '#34d399';
+        ctx.fillRect(x, mid - barH, 1, barH * 2);
+      }
+    }
+
+    draw();
+  </script>
 </body>
 </html>
