@@ -31,7 +31,7 @@ def _cuda_available() -> bool:
     """Check whether a CUDA-capable GPU is accessible to CTranslate2."""
     try:
         import ctranslate2
-        return len(ctranslate2.get_supported_devices("cuda")) > 0
+        return ctranslate2.get_cuda_device_count() > 0
     except Exception:
         return False
 
