@@ -6,8 +6,8 @@ let currentJobId = null;
 let currentMode = 'Soft subtitle (toggleable)';
 
 // Mode strings MUST match server.py exactly.
-const MODE_SOFT = 'Soft subtitle (toggleable)';
-const MODE_HARDCODE = 'Hardcode (burned in)';
+const MODE_SOFT = 'Toggleable (soft subtitle)';
+const MODE_HARDCODE = 'Always visible (burned in)';
 
 // Slider ↔ display pairs.
 const SLIDER_PAIRS = [
@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupLivePreview();
   setupButtons();
   setupAccordion();
+  setupAdvancedSettings();
   setupSrtEditor();
 });
 
@@ -318,8 +319,9 @@ function updateFontPreviewStyle() {
   }
 
   if (borderStyle === '3') {
+    const boxPadding = Math.max(outline, 3);
     textEl.style.backgroundColor = 'rgba(0,0,0,0.75)';
-    textEl.style.padding = '4px 12px';
+    textEl.style.padding = `${boxPadding}px ${boxPadding * 2}px`;
     textEl.style.borderRadius = '2px';
   } else {
     textEl.style.backgroundColor = '';
@@ -345,6 +347,17 @@ function setupButtons() {
 function setupAccordion() {
   const toggle = document.getElementById('font-accordion-toggle');
   const section = document.getElementById('font-section');
+  if (!toggle || !section) return;
+  toggle.addEventListener('click', () => {
+    section.classList.toggle('open');
+    const expanded = section.classList.contains('open');
+    toggle.setAttribute('aria-expanded', String(expanded));
+  });
+}
+
+function setupAdvancedSettings() {
+  const toggle = document.getElementById('advanced-toggle');
+  const section = document.getElementById('advanced-section');
   if (!toggle || !section) return;
   toggle.addEventListener('click', () => {
     section.classList.toggle('open');
@@ -740,7 +753,8 @@ function onDownloadSrt() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'subtitles.srt';
+  const stem = currentVideoFile ? currentVideoFile.name.replace(/\.[^.]+$/, '') : 'video';
+  a.download = `${stem}.srt`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -752,7 +766,8 @@ function onDownloadVideo() {
   if (!currentJobId) { showError('No video to download. Generate subtitles first.'); return; }
   const a = document.createElement('a');
   a.href = `/api/files/${currentJobId}/video`;
-  a.download = 'subtitled.mp4';
+  const stem = currentVideoFile ? currentVideoFile.name.replace(/\.[^.]+$/, '') : 'video';
+  a.download = `${stem}_subtitled.mp4`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
