@@ -2646,3 +2646,38 @@ body {
 .video-empty-icon {
   border-radius: 12px;
 }
+
+/* ── App footer hint (server reminder) ─────────────────── */
+.app-footer-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 20px 0 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  user-select: none;
+}
+.app-footer-hint kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-surface);
+  font-family: inherit;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+.app-footer-hint code {
+  font-family: inherit;
+  font-size: 10px;
+  color: var(--color-accent);
+  background: var(--accent-soft);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+[data-theme="light"] .app-footer-hint code {
+  background: rgba(5, 150, 105, 0.08);
+}
