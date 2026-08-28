@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Video Subtitler — App</title>
-  <meta name="description" content="Auto-generate and embed subtitles for MP4 videos using GPU-accelerated Whisper. Soft tracks for toggling, hardcoded for socials, full font control — 100% local.">
+  <title>Video Subtitler — Demo Preview</title>
+  <meta name="description" content="Interactive demo of the Video Subtitler app — explore the UI without a backend.">
   <meta name="theme-color" content="#0a0a0b">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,6 +12,193 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
   <link rel="stylesheet" href="static/css/style.css">
+
+  <!-- Demo-only styles — not part of shared style.css -->
+  <style>
+    /* Demo badge in nav */
+    .demo-badge {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 1px 7px;
+      font-size: 10px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent, #10b981);
+      background: var(--accent-soft, rgba(16,185,129,0.12));
+      border: 1px solid var(--accent, #10b981);
+      border-radius: 4px;
+      line-height: 1.4;
+      vertical-align: middle;
+    }
+
+    /* Demo banner below nav */
+    .demo-banner {
+      background: var(--accent-soft, rgba(16,185,129,0.08));
+      border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
+      padding: 8px 0;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-secondary, #9ca3af);
+    }
+    .demo-banner a {
+      color: var(--accent, #10b981);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .demo-banner a:hover { opacity: 0.85; }
+    .demo-banner-inner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .demo-banner-inner svg {
+      flex-shrink: 0;
+      color: var(--accent, #10b981);
+    }
+    .demo-banner-inner span { flex: 1; }
+    .demo-banner-close {
+      flex-shrink: 0;
+      background: none;
+      border: none;
+      color: var(--text-tertiary, #6b7280);
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+    .demo-banner-close:hover {
+      background: var(--surface-hover, rgba(255,255,255,0.06));
+      color: var(--text-primary, #e5e7eb);
+    }
+
+    /* Demo video placeholder (upload zone) */
+    .demo-video-placeholder {
+      width: 100%;
+      aspect-ratio: 4/3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+    .demo-video-placeholder img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .demo-video-placeholder .play-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.3);
+      transition: background 0.2s ease;
+    }
+    .demo-video-placeholder:hover .play-overlay {
+      background: rgba(0,0,0,0.15);
+    }
+    .play-overlay svg {
+      width: 48px;
+      height: 48px;
+      color: rgba(255,255,255,0.9);
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+    }
+
+    /* Demo video result placeholder */
+    .demo-video-result-placeholder {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      overflow: hidden;
+    }
+    #result-video-frame { aspect-ratio: 4/3; }
+    #preview-block .preview-frame { aspect-ratio: 4/3; }
+
+    .demo-video-result-placeholder img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Demo font preview placeholder */
+    .demo-font-preview {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0 0 24px 0;
+      background: #000;
+      overflow: hidden;
+    }
+    .demo-font-preview-bg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.85;
+    }
+    .demo-font-preview-text {
+      line-height: 1.4;
+      text-align: center;
+      word-break: break-word;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Demo inline message (for download video fallback) */
+    .demo-inline-msg {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--text-secondary, #9ca3af);
+      background: var(--surface, rgba(255,255,255,0.04));
+      border: 1px solid var(--border, rgba(255,255,255,0.08));
+    }
+    .demo-inline-msg svg { flex-shrink: 0; color: var(--accent, #10b981); }
+
+    /* Demo toast notification */
+    .demo-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary, #e5e7eb);
+      background: var(--surface, #1a1a1e);
+      border: 1px solid var(--border, rgba(255,255,255,0.1));
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      white-space: nowrap;
+      pointer-events: none;
+      animation: demo-toast-in 0.3s ease;
+    }
+    @keyframes demo-toast-in {
+      from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+      to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+  </style>
 
   <!-- Theme init — runs before paint to avoid FOUC -->
   <script>
@@ -51,6 +238,7 @@
           </svg>
         </span>
         <span>Video Subtitler</span>
+        <span class="demo-badge" aria-label="Demo preview">Demo</span>
       </a>
       <div class="nav-actions">
         <a href="/" class="nav-link" aria-label="Back to landing page">
@@ -71,6 +259,19 @@
       </div>
     </div>
   </nav>
+
+  <!-- Demo banner -->
+  <div class="demo-banner" id="demo-banner" role="status">
+    <div class="container demo-banner-inner">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="16" x2="12" y2="12"/>
+        <line x1="12" y1="8" x2="12.01" y2="8"/>
+      </svg>
+      <span>This is an interactive demo — no backend is required. To use the real app, <a href="/">run it locally</a>.</span>
+      <button type="button" class="demo-banner-close" id="demo-banner-close" aria-label="Dismiss demo banner">&times;</button>
+    </div>
+  </div>
 
   <!-- =========================================================
        Main
@@ -96,7 +297,7 @@
           <div class="upload-zone" id="video-upload-zone" tabindex="0" role="button" aria-label="Upload video">
             <input type="file" id="video-file-input" accept="video/mp4,video/quicktime,video/*" hidden>
 
-            <div class="upload-zone-empty" id="upload-empty">
+            <div class="upload-zone-empty" id="upload-empty" hidden>
               <div class="upload-zone-icon">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -108,16 +309,25 @@
               <p class="upload-zone-sub">or click to browse</p>
             </div>
 
-            <div class="upload-zone-filled" id="upload-filled" hidden>
-              <video id="video-preview" class="video-player" controls preload="metadata"></video>
+            <div class="upload-zone-filled" id="upload-filled">
+              <video id="video-preview" class="video-player" controls preload="metadata" hidden></video>
+              <div class="demo-video-placeholder" id="demo-video-placeholder">
+                <img src="static/img/sample_frame.jpg" alt="Sample video preview — Mount Bromo cloud river" loading="lazy">
+                <div class="play-overlay" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="23 7 16 12 23 17 23 7"/>
+                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                  </svg>
+                </div>
+              </div>
               <div class="video-meta">
                 <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);flex-shrink:0" aria-hidden="true">
                     <polygon points="23 7 16 12 23 17 23 7"/>
                     <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
                   </svg>
-                  <span class="video-filename" id="video-filename">video.mp4</span>
-                  <span class="video-filesize" id="video-filesize"></span>
+                  <span class="video-filename" id="video-filename">sample.mp4</span>
+                  <span class="video-filesize" id="video-filesize">7.0 MB</span>
                 </div>
                 <button type="button" class="btn-text" id="remove-video-btn">Remove</button>
               </div>
@@ -225,7 +435,15 @@
               <div class="field">
                 <label class="field-label" for="font-name-select">Font Name</label>
                 <select id="font-name-select" class="select">
+                  <option value="Arial">Arial</option>
+                  <option value="DejaVu Sans">DejaVu Sans</option>
+                  <option value="Inter">Inter</option>
+                  <option value="JetBrains Mono">JetBrains Mono</option>
+                  <option value="Liberation Sans">Liberation Sans</option>
                   <option value="Literata" selected>Literata</option>
+                  <option value="Noto Sans">Noto Sans</option>
+                  <option value="Noto Sans CJK SC">Noto Sans CJK SC</option>
+                  <option value="Roboto">Roboto</option>
                 </select>
                 <p class="field-info">Select a system font for hardcoded subtitles</p>
               </div>
@@ -310,7 +528,7 @@
               </div>
 
               <!-- Preview Font -->
-              <button type="button" class="btn btn-secondary btn-block" id="preview-btn" disabled>
+              <button type="button" class="btn btn-secondary btn-block" id="preview-btn">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                   <circle cx="12" cy="12" r="3"/>
@@ -322,7 +540,7 @@
         </div>
 
         <!-- 6. Generate Button -->
-        <button type="button" class="btn btn-primary btn-lg btn-block" id="generate-btn" disabled>
+        <button type="button" class="btn btn-primary btn-lg btn-block" id="generate-btn">
           <span class="btn-spinner" aria-hidden="true"></span>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon" aria-hidden="true">
             <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/>
@@ -357,6 +575,10 @@
               </div>
               <p class="preview-empty-text">Click &ldquo;Preview Font&rdquo; to render a frame with your subtitle styling.</p>
             </div>
+            <div class="demo-font-preview" id="demo-font-preview" hidden>
+              <img class="demo-font-preview-bg" src="static/img/sample_frame.jpg" alt="" loading="lazy">
+              <div class="demo-font-preview-text" id="demo-font-preview-text">Sample Subtitle Text</div>
+            </div>
           </div>
         </div>
 
@@ -367,7 +589,11 @@
           </div>
           <div class="video-frame" id="result-video-frame">
             <video id="result-video" controls preload="metadata" hidden></video>
-            <div class="video-empty" id="result-empty">
+            <!-- Demo placeholder for video result -->
+            <div class="demo-video-result-placeholder" id="demo-video-result-placeholder">
+                <img src="static/img/sample_frame_subtitled.jpg" alt="Subtitled video preview — Mount Bromo cloud river" loading="lazy">
+              </div>
+            <div class="video-empty" id="result-empty" hidden>
               <div class="video-empty-icon" aria-hidden="true">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polygon points="23 7 16 12 23 17 23 7"/>
@@ -438,7 +664,7 @@
 
         <!-- 10. Actions Row -->
         <div style="display:flex;flex-direction:column;gap:10px">
-          <button type="button" class="btn btn-secondary btn-block" id="regenerate-btn" disabled>
+          <button type="button" class="btn btn-secondary btn-block" id="regenerate-btn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 12a9 9 0 1 1-3-6.7L21 8"/>
               <polyline points="21 3 21 8 16 8"/>
@@ -446,7 +672,7 @@
             Regenerate Video
           </button>
           <div class="actions-row">
-            <button type="button" class="btn btn-secondary" id="download-srt-btn" disabled>
+            <button type="button" class="btn btn-secondary" id="download-srt-btn">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="7 10 12 15 17 10"/>
@@ -454,7 +680,7 @@
               </svg>
               Download SRT
             </button>
-            <button type="button" class="btn btn-secondary" id="download-video-btn" disabled>
+            <button type="button" class="btn btn-secondary" id="download-video-btn">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="7 10 12 15 17 10"/>
@@ -474,10 +700,25 @@
           </svg>
           <p id="error-text"></p>
         </div>
+
+        <!-- Demo inline message (for download video fallback) -->
+        <div class="demo-inline-msg" id="demo-inline-msg" hidden role="status">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="16" x2="12" y2="12"/>
+            <line x1="12" y1="8" x2="12.01" y2="8"/>
+          </svg>
+          <span>Video download requires the real app running locally.</span>
+        </div>
       </section>
     </div>
   </main>
 
-  <script src="static/js/app.js"></script>
+  <!-- Demo toast notification -->
+  <div class="demo-toast" id="demo-toast" hidden role="status" aria-live="polite">
+    <span id="demo-toast-text"></span>
+  </div>
+
+  <script src="static/js/demo.js"></script>
 </body>
 </html>
