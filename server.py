@@ -53,7 +53,7 @@ def _cuda_available() -> bool:
 
 HAS_CUDA = _cuda_available()
 
-APP_MODEL = os.environ.get("WHISPER_MODEL", MODEL_SIZE)
+APP_MODEL = os.environ.get("WHISPER_MODEL", "small")
 APP_DEVICE = os.environ.get("WHISPER_DEVICE", "cuda" if HAS_CUDA else "cpu")
 APP_COMPUTE_TYPE = os.environ.get(
     "WHISPER_COMPUTE_TYPE", COMPUTE_TYPE if HAS_CUDA else "int8"
@@ -104,6 +104,7 @@ def _build_style(
     font_name: str, font_size: int, font_color: str,
     outline: int, shadow: int, border_style: int, alignment: int, margin_v: int, margin_h: int,
 ) -> str:
+    back_colour = "&H80000000&" if border_style == 3 else "&H000000&"
     return build_force_style(
         font_name=font_name,
         font_size=font_size,
@@ -114,12 +115,13 @@ def _build_style(
         alignment=alignment,
         margin_v=margin_v,
         margin_h=margin_h,
+        back_colour=back_colour,
     )
 
 
 def _burn_or_mux(mode: str, video_path: Path, srt_path: Path, output_path: Path, style: str) -> None:
     """Blocking helper — call from asyncio.to_thread."""
-    if mode == "Hardcode (burned in)":
+    if "burned" in mode.lower() or "hardcode" in mode.lower():
         hardcode_subtitle(video_path, srt_path, output_path, force_style=style)
     else:
         mux_subtitle(video_path, srt_path, output_path)
@@ -129,18 +131,21 @@ def _ffmpeg_error_message(exc: subprocess.CalledProcessError) -> str:
     stderr = exc.stderr.decode(errors="replace") if exc.stderr else ""
     lines = [ln for ln in stderr.strip().splitlines() if ln.strip()]
     tail = lines[-1] if lines else str(exc)
-    return f"FFmpeg failed: {tail}"
+    return f"Video processing failed: {tail}"
 
 
 def _validate_device(device: str, compute_type: str) -> str | None:
     """Return an error message string, or None if the combo is valid."""
     if device == "cuda" and not HAS_CUDA:
         return (
-            "CUDA is not available on this system. "
-            "Please switch Device to 'cpu' and Compute Type to 'int8'."
+            "Your computer doesn't have a supported NVIDIA GPU. "
+            "Please switch Device to 'CPU' in the settings."
         )
     if device == "cpu" and compute_type in ("float16", "int8_float16"):
-        return f"'{compute_type}' requires CUDA. Please switch Compute Type to 'int8'."
+        return (
+            "This setting requires an NVIDIA GPU, but you're using CPU mode. "
+            "Please switch Compute Type to 'int8' in the settings."
+        )
     return None
 
 
@@ -252,7 +257,7 @@ def _sse(data: dict[str, Any]) -> dict[str, str]:
 async def api_process(
     video: UploadFile = File(...),
     language: str = Form("auto"),
-    mode: str = Form("Hardcode (burned in)"),
+    mode: str = Form("Toggleable (soft subtitle)"),
     model_size: str = Form(APP_MODEL),
     device: str = Form(APP_DEVICE),
     compute_type: str = Form(APP_COMPUTE_TYPE),
@@ -321,7 +326,7 @@ async def api_process(
                 model_size, lang_arg, device, compute_type,
             )
 
-            if mode == "Hardcode (burned in)":
+            if mode == "Always visible (burned in)":
                 yield _sse({
                     "stage": "burning", "progress": 70,
                     "message": "Burning subtitles into video (2-pass encode)...",
@@ -329,7 +334,7 @@ async def api_process(
             else:
                 yield _sse({
                     "stage": "muxing", "progress": 70,
-                    "message": "Muxing soft subtitle track...",
+                    "message": "Adding subtitle track to video...",
                 })
             await asyncio.to_thread(_burn_or_mux, mode, upload_path, srt_path, output_path, style)
 
@@ -413,7 +418,7 @@ async def api_regenerate(
             async with aiofiles.open(edited_srt_path, "w", encoding="utf-8") as f:
                 await f.write(srt_text)
 
-            if mode == "Hardcode (burned in)":
+            if mode == "Always visible (burned in)":
                 yield _sse({
                     "stage": "burning", "progress": 70,
                     "message": "Burning edited subtitles into video (2-pass encode)...",
@@ -421,7 +426,7 @@ async def api_regenerate(
             else:
                 yield _sse({
                     "stage": "muxing", "progress": 70,
-                    "message": "Muxing edited soft subtitle track...",
+                    "message": "Adding edited subtitle track to video...",
                 })
             await asyncio.to_thread(_burn_or_mux, mode, video_path, edited_srt_path, output_path, style)
 
@@ -486,7 +491,25 @@ async def api_preview(
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 
+def _open_browser(url: str) -> None:
+    """Open the web UI in the default browser (best-effort, non-blocking)."""
+    import threading
+    import webbrowser
+
+    def _opener():
+        import time
+        time.sleep(1.5)  # wait for server to be ready
+        webbrowser.open(url)
+
+    thread = threading.Thread(target=_opener, daemon=True)
+    thread.start()
+
+
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="127.0.0.1", port=7860, log_level="info")
+    HOST = "127.0.0.1"
+    PORT = 7860
+    url = f"http://{HOST}:{PORT}"
+    _open_browser(url)
+    uvicorn.run(app, host=HOST, port=PORT, log_level="info")
