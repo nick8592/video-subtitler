@@ -585,7 +585,7 @@
       align-items: start;
     }
     @media (max-width: 900px) {
-      .quickstart { grid-template-columns: 1fr; gap: 32px; }
+      .quickstart { grid-template-columns: minmax(0, 1fr); gap: 32px; }
     }
     .quickstart-info h3 {
       font-size: 24px;
@@ -622,8 +622,10 @@
       background: var(--code-bg);
       border: 1px solid var(--code-border);
       border-radius: var(--radius-lg);
+      overflow: hidden;
       box-shadow: var(--shadow-soft);
       min-width: 0;
+      max-width: 100%;
     }
     .code-header {
       display: flex;
@@ -671,7 +673,6 @@
       line-height: 1.85;
       color: var(--text);
       overflow-x: auto;
-      max-width: 100%;
       -webkit-overflow-scrolling: touch;
     }
     .code-body code {
