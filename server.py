@@ -229,16 +229,18 @@ async def api_files(job_id: str, kind: str) -> FileResponse:
     job = _jobs.get(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Unknown job_id.")
+    video_path = job.get("video_path", "")
+    stem = Path(video_path).stem if video_path else "video"
     if kind == "video":
         path = job.get("output_path")
         if not path or not Path(path).exists():
             raise HTTPException(status_code=404, detail="Video not ready.")
-        return FileResponse(path, media_type="video/mp4", filename="subtitled.mp4")
+        return FileResponse(path, media_type="video/mp4", filename=f"{stem}_subtitled.mp4")
     if kind == "srt":
         path = job.get("srt_path")
         if not path or not Path(path).exists():
             raise HTTPException(status_code=404, detail="SRT not ready.")
-        return FileResponse(path, media_type="application/x-subrip", filename="subtitles.srt")
+        return FileResponse(path, media_type="application/x-subrip", filename=f"{stem}.srt")
     raise HTTPException(status_code=400, detail="kind must be 'video' or 'srt'.")
 
 
