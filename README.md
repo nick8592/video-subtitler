@@ -116,8 +116,8 @@ https://github.com/user-attachments/assets/d996cfec-f958-4aba-aea8-9e8952b5877c
 
 | File | Resolution | Duration | Size | Codec |
 |---|---|---|---|---|
-| `sample.mp4` | 1920×1440 | 10.0s | 7 MB | H.264 |
-| `sample_subtitled.mp4` | 1920×1440 | 10.0s | 7 MB | H.264 (subtitles burned in) |
+| `sample.mp4` | 1920×1440 | 5.5s | 4 MB | H.264 |
+| `sample_subtitled.mp4` | 1920×1440 | 5.5s | 4 MB | H.264 (subtitles burned in) |
 
 ### Generated subtitle (`sample.srt`)
 
