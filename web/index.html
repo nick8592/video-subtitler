@@ -75,6 +75,7 @@
       -moz-osx-font-smoothing: grayscale;
       text-rendering: optimizeLegibility;
       overflow-x: hidden;
+      width: 100%;
       transition: background 0.3s var(--ease), color 0.3s var(--ease);
     }
     ::selection { background: var(--selection); color: var(--text); }
@@ -148,6 +149,7 @@
       max-width: var(--max-w);
       margin: 0 auto;
       padding: 0 24px;
+      overflow-x: hidden;
     }
     .section {
       padding: 120px 0;
@@ -579,9 +581,10 @@
        ========================================================= */
     .quickstart {
       display: grid;
-      grid-template-columns: 1fr 1.2fr;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
       gap: 56px;
       align-items: start;
+      overflow: hidden;
     }
     @media (max-width: 900px) {
       .quickstart { grid-template-columns: 1fr; gap: 32px; }
@@ -623,6 +626,7 @@
       border-radius: var(--radius-lg);
       overflow: hidden;
       box-shadow: var(--shadow-soft);
+      min-width: 0;
     }
     .code-header {
       display: flex;
@@ -669,6 +673,11 @@
       line-height: 1.85;
       color: var(--text);
       overflow-x: auto;
+      max-width: 100%;
+    }
+    .code-body code {
+      display: block;
+      min-width: 0;
     }
     .code-body .comment { color: var(--text-tertiary); }
     .code-body .prompt { color: var(--accent); user-select: none; }
@@ -684,6 +693,8 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      overflow-wrap: break-word;
+      word-break: break-word;
     }
     .code-note strong { color: var(--text); font-weight: 600; }
     .code-note code {
@@ -806,6 +817,8 @@
       /* Code block */
       .code-body { padding: 14px 16px; font-size: 12px; }
       .code-note { padding: 10px 16px; font-size: 12px; }
+      .code-header { padding: 10px 12px; }
+      .code-title { font-size: 11px; }
 
       /* Quickstart */
       .quickstart-info h3 { font-size: 20px; }
