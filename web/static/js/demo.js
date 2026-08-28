@@ -475,7 +475,6 @@ function updateSoftNotice() {
 // ── Generate (simulated) ────────────────────────────────────────────────────
 function onGenerate() {
   clearError();
-  hideDemoInlineMsg();
 
   const softNotice = document.getElementById('soft-notice');
   if (softNotice) {
@@ -521,7 +520,6 @@ function onGenerate() {
 // ── Regenerate (simulated, shorter) ─────────────────────────────────────────
 function onRegenerate() {
   clearError();
-  hideDemoInlineMsg();
 
   const softNotice = document.getElementById('soft-notice');
   if (softNotice) {
@@ -566,10 +564,10 @@ function onDownloadSrt() {
 
 // ── Download Video (demo: show inline message) ──────────────────────────────
 function onDownloadVideo() {
-  showDemoInlineMsg();
+  showToast('Video download requires the real app running locally');
 }
 
-// ── Error display ───────────────────────────────────────────────────────────
+// ── Error display
 function showError(message) {
   const el = document.getElementById('error-display');
   const text = document.getElementById('error-text');
@@ -584,28 +582,6 @@ function clearError() {
   if (!el) return;
   el.setAttribute('hidden', '');
   el.style.display = 'none';
-}
-
-// ── Demo inline message ─────────────────────────────────────────────────────
-function showDemoInlineMsg() {
-  const el = document.getElementById('demo-inline-msg');
-  if (el) {
-    el.removeAttribute('hidden');
-    el.style.display = '';
-    // Auto-dismiss after 4 seconds
-    setTimeout(() => {
-      el.setAttribute('hidden', '');
-      el.style.display = 'none';
-    }, 4000);
-  }
-}
-
-function hideDemoInlineMsg() {
-  const el = document.getElementById('demo-inline-msg');
-  if (el) {
-    el.setAttribute('hidden', '');
-    el.style.display = 'none';
-  }
 }
 
 // ── Toast notification ──────────────────────────────────────────────────────
