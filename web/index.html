@@ -810,12 +810,12 @@
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
           </svg>
         </button>
-        <a href="/app" class="nav-open-app">
+        <a href="/demo" class="nav-open-app">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M7 17 17 7"/>
             <path d="M7 7h10v10"/>
           </svg>
-          <span>Open App</span>
+          <span>Demo</span>
         </a>
       </div>
     </div>
@@ -836,8 +836,8 @@
           Auto-generate and embed subtitles for MP4 videos using GPU-accelerated Whisper. Soft tracks for toggling, hardcoded for socials, full font control — and your video never leaves your machine.
         </p>
         <div class="hero-ctas reveal">
-          <a href="/app" class="btn btn-primary">
-            Get Started
+          <a href="/demo" class="btn btn-primary">
+            Demo
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
             </svg>
@@ -1079,9 +1079,9 @@
           <div style="position:absolute;inset:0;background:radial-gradient(ellipse at center top,var(--accent-soft),transparent 60%);pointer-events:none"></div>
           <div style="position:relative">
             <h2 style="font-size:32px;font-weight:700;letter-spacing:-0.02em;margin-bottom:12px;color:var(--text)">Ready to subtitle something?</h2>
-            <p style="color:var(--text-secondary);max-width:480px;margin:0 auto 28px;font-size:16px">Open the local web UI and start generating. Your files never leave your machine.</p>
-            <a href="/app" class="btn btn-primary" style="font-size:16px;padding:14px 24px">
-              Open the App
+            <p style="color:var(--text-secondary);max-width:480px;margin:0 auto 28px;font-size:16px">Try the interactive demo — or run locally for full subtitle generation. Your files never leave your machine.</p>
+            <a href="/demo" class="btn btn-primary" style="font-size:16px;padding:14px 24px">
+              Try the Demo
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
               </svg>
@@ -1248,24 +1248,30 @@
       }
 
       // =========================================================
-      // Context-aware /app links — local vs GitHub Pages
+      // Context-aware /demo links — local vs GitHub Pages
       // =========================================================
-      // When running locally (localhost / 127.0.0.1), /app links
-      // point to the live FastAPI app. On GitHub Pages, there's no
-      // backend, so rewrite them to the interactive demo (/demo)
-      // instead of a dead /app route.
+      // HTML defaults to /demo (works on GitHub Pages without JS).
+      // When running locally (localhost / 127.0.0.1), rewrite /demo
+      // links to /app so they point to the live FastAPI backend.
       (function () {
         var isLocal = ['localhost', '127.0.0.1', '::1'].indexOf(location.hostname) !== -1;
-        if (isLocal) return; // local server serves /app — leave links as-is
+        if (!isLocal) return; // GitHub Pages — leave /demo links as-is
 
-        // Rewrite all href="/app" links → /demo
-        var appLinks = document.querySelectorAll('a[href="/app"]');
-        for (var i = 0; i < appLinks.length; i++) {
-          appLinks[i].setAttribute('href', '/demo');
-          // Update visible label for the nav button
-          var label = appLinks[i].querySelector('span');
-          if (label && (label.textContent === 'Open App' || label.textContent === 'Get Started' || label.textContent === 'Open the App')) {
-            label.textContent = 'Demo';
+        // Rewrite all href="/demo" links → /app
+        var demoLinks = document.querySelectorAll('a[href="/demo"]');
+        for (var i = 0; i < demoLinks.length; i++) {
+          demoLinks[i].setAttribute('href', '/app');
+          // Update visible labels
+          var label = demoLinks[i].querySelector('span');
+          if (label && (label.textContent === 'Demo')) {
+            label.textContent = 'Open App';
+          }
+          // Update CTA text for non-nav buttons
+          if (demoLinks[i].textContent.trim() === 'Demo') {
+            demoLinks[i].innerHTML = demoLinks[i].innerHTML.replace('Demo', 'Get Started');
+          }
+          if (demoLinks[i].textContent.trim().indexOf('Try the Demo') !== -1) {
+            demoLinks[i].innerHTML = demoLinks[i].innerHTML.replace('Try the Demo', 'Open the App');
           }
         }
       })();
