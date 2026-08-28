@@ -69,13 +69,17 @@ def build_force_style(
     alignment: int = 2,
     margin_v: int = 20,
     margin_h: int = 10,
+    back_colour: str = "&H000000&",
 ) -> str:
-    """Build an ASS force_style string for FFmpeg's subtitles filter."""
+    effective_outline = outline
+    if border_style == 3 and outline < 3:
+        effective_outline = 3
     return (
         f"FontName={font_name},FontSize={font_size},"
         f"PrimaryColour={primary_colour},"
-        f"Outline={outline},Shadow={shadow},"
-        f"BorderStyle={border_style},Alignment={alignment},"
+        f"Outline={effective_outline},Shadow={shadow},"
+        f"BorderStyle={border_style},BackColour={back_colour},"
+        f"Alignment={alignment},"
         f"MarginV={margin_v},MarginL={margin_h},MarginR={margin_h}"
     )
 
@@ -389,6 +393,7 @@ def process_videos(
                 print(f"  Output already exists — skipping (delete to re-run)")
             else:
                 if hardcode:
+                    back_colour = "&H80000000&" if border_style == 3 else "&H000000&"
                     style = build_force_style(
                         font_name=font_name,
                         font_size=font_size,
@@ -399,6 +404,7 @@ def process_videos(
                         alignment=alignment,
                         margin_v=margin_v,
                         margin_h=margin_h,
+                        back_colour=back_colour,
                     )
                     hardcode_subtitle(video, srt_path, output_path, force_style=style)
                 else:
