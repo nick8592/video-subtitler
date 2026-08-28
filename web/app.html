@@ -156,48 +156,68 @@
         <div class="block">
           <span class="block-label">Subtitle Mode</span>
           <div class="mode-toggle" role="radiogroup" aria-label="Subtitle mode">
-            <button type="button" class="mode-btn" id="mode-soft" role="radio" aria-checked="false" data-mode="soft">
-              <span class="mode-btn-title"><span class="dot" aria-hidden="true"></span>Soft subtitle</span>
-              <span class="mode-btn-sub">Toggleable track, no re-encode</span>
+            <button type="button" class="mode-btn active" id="mode-soft" role="radio" aria-checked="true" data-mode="soft">
+              <span class="mode-btn-title"><span class="dot" aria-hidden="true"></span>Toggleable</span>
+              <span class="mode-btn-sub">Viewers can turn on/off</span>
             </button>
-            <button type="button" class="mode-btn active" id="mode-hardcode" role="radio" aria-checked="true" data-mode="hardcode">
-              <span class="mode-btn-title"><span class="dot" aria-hidden="true"></span>Hardcode</span>
-              <span class="mode-btn-sub">Burned in, always visible</span>
+            <button type="button" class="mode-btn" id="mode-hardcode" role="radio" aria-checked="false" data-mode="hardcode">
+              <span class="mode-btn-title"><span class="dot" aria-hidden="true"></span>Always visible</span>
+              <span class="mode-btn-sub">Burned into the video</span>
             </button>
           </div>
-          <p class="block-info">Soft = can toggle on/off; Hardcode = always visible</p>
+          <p class="block-info">Toggleable = viewers choose; Always visible = shown on every player</p>
         </div>
 
-        <!-- 4. Model / Device / Compute -->
+        <!-- 4. Model Selection (simplified) -->
         <div class="block">
-          <div class="grid-3">
-            <div class="field">
-              <label class="field-label" for="model-select">Whisper Model</label>
-              <select id="model-select" class="select">
-                <option value="tiny">tiny</option>
-                <option value="base">base</option>
-                <option value="small">small</option>
-                <option value="medium">medium</option>
-                <option value="large-v3" selected>large-v3</option>
-              </select>
-              <p class="field-info">Larger = more accurate, slower</p>
-            </div>
-            <div class="field">
-              <label class="field-label" for="device-select">Device</label>
-              <select id="device-select" class="select">
-                <option value="cuda" selected>cuda</option>
-                <option value="cpu">cpu</option>
-              </select>
-              <p class="field-info">cuda requires NVIDIA GPU</p>
-            </div>
-            <div class="field">
-              <label class="field-label" for="compute-select">Compute Type</label>
-              <select id="compute-select" class="select">
-                <option value="float16" selected>float16</option>
-                <option value="int8_float16">int8_float16</option>
-                <option value="int8">int8</option>
-              </select>
-              <p class="field-info">Lower precision = less VRAM</p>
+          <label class="block-label" for="model-select">Model Size</label>
+          <select id="model-select" class="select">
+            <option value="tiny">Tiny — fastest, basic accuracy</option>
+            <option value="base">Base — fast, decent accuracy</option>
+            <option value="small" selected>Small — good balance</option>
+            <option value="medium">Medium — high accuracy, slower</option>
+            <option value="large-v3">Large — best accuracy, slowest</option>
+          </select>
+          <p class="block-info">Bigger models are more accurate but take longer to process</p>
+        </div>
+
+        <!-- 4b. Advanced Settings (collapsible) -->
+        <div class="accordion" id="advanced-section">
+          <button type="button" class="accordion-header" id="advanced-toggle" aria-expanded="false" aria-controls="advanced-body">
+            <span class="accordion-header-left">
+              <span class="accordion-header-icon" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+              </span>
+              <span>Advanced Settings</span>
+            </span>
+            <svg class="accordion-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          <div class="accordion-body" id="advanced-body" role="region">
+            <div class="accordion-body-inner">
+              <div class="grid-2">
+                <div class="field">
+                  <label class="field-label" for="device-select">Device</label>
+                  <select id="device-select" class="select">
+                    <option value="cuda" selected>GPU (faster)</option>
+                    <option value="cpu">CPU (slower)</option>
+                  </select>
+                  <p class="field-info">GPU requires an NVIDIA graphics card</p>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="compute-select">Quality</label>
+                  <select id="compute-select" class="select">
+                    <option value="float16" selected>High (float16)</option>
+                    <option value="int8_float16">Medium (int8_float16)</option>
+                    <option value="int8">Low / CPU (int8)</option>
+                  </select>
+                  <p class="field-info">Lower quality = uses less memory</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -397,7 +417,7 @@
               <line x1="12" y1="16" x2="12" y2="12"/>
               <line x1="12" y1="8" x2="12.01" y2="8"/>
             </svg>
-            <span>Soft subtitles are embedded as a track but won&rsquo;t display in this preview because the browser&rsquo;s HTML5 video player doesn&rsquo;t support embedded subtitle tracks. They will work in players like VLC, mpv, or when burned in (Hardcode mode).</span>
+            <span>Toggleable subtitles are embedded in the video as a track. They won&rsquo;t show in this preview because the browser&rsquo;s video player doesn&rsquo;t support them, but they will work in VLC, mpv, and most media players. Switch to &ldquo;Always visible&rdquo; mode if you need subtitles to appear everywhere.</span>
           </div>
         </div>
 
