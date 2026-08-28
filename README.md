@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/CUDA-GPU_Accelerated-76B900?style=flat-square&logo=nvidia&logoColor=white" alt="CUDA">
   <img src="https://img.shields.io/badge/faster--whisper-Powered-FF6F00?style=flat-square" alt="faster-whisper">
-  <img src="https://img.shields.io/github/stars/nick8592/video-subtitler?style=flat-square&color=red" alt="GitHub Stars">
+
 </p>
 
 Auto-generate and embed subtitles for `.mp4` videos using [faster-whisper](https://github.com/SYSTRAN/faster-whisper) (GPU-accelerated Whisper) and ffmpeg.
