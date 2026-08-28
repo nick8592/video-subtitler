@@ -1388,6 +1388,8 @@ h3, .h3 {
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text);
+  cursor: pointer;
+  touch-action: manipulation;
   transition: background var(--transition-fast) var(--ease);
 }
 
@@ -1429,6 +1431,7 @@ h3, .h3 {
 .accordion-body-inner {
   padding: 4px 16px 18px;
   border-top: 1px solid var(--color-border);
+  overflow: hidden;
 }
 
 .accordion-body-inner > * + * { margin-top: 14px; }
@@ -2389,6 +2392,13 @@ body {
   .grid-2, .grid-3 {
     grid-template-columns: 1fr;
     gap: 10px;
+  }
+
+  /* Accordion: ensure reliable tap toggle on mobile */
+  .accordion-header {
+    min-height: 48px;
+    position: relative;
+    z-index: 1;
   }
 }
 
