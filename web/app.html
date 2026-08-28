@@ -299,14 +299,24 @@
                 </div>
               </div>
 
-              <!-- Vertical Margin -->
-              <div class="field">
-                <label class="field-label" for="margin-v-slider">
-                  <span>Vertical Margin</span>
-                  <span class="value" id="margin-v-value">20</span>
-                </label>
-                <input type="range" id="margin-v-slider" class="slider" min="0" max="200" value="20" step="5">
-                <p class="field-info">Distance from bottom edge in pixels</p>
+              <!-- Margin V + Margin H -->
+              <div class="grid-2">
+                <div class="field">
+                  <label class="field-label" for="margin-v-slider">
+                    <span>Margin V</span>
+                    <span class="value" id="margin-v-value">20</span>
+                  </label>
+                  <input type="range" id="margin-v-slider" class="slider" min="0" max="200" value="20" step="5">
+                  <p class="field-info">Distance from top/bottom edge</p>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="margin-h-slider">
+                    <span>Margin H</span>
+                    <span class="value" id="margin-h-value">10</span>
+                  </label>
+                  <input type="range" id="margin-h-slider" class="slider" min="0" max="200" value="10" step="5">
+                  <p class="field-info">Distance from left/right edge</p>
+                </div>
               </div>
 
               <!-- Live Font Preview -->

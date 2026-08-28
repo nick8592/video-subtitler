@@ -11,6 +11,7 @@ const SLIDER_PAIRS = [
   ['outline-slider', 'outline-value'],
   ['shadow-slider', 'shadow-value'],
   ['margin-v-slider', 'margin-v-value'],
+  ['margin-h-slider', 'margin-h-value'],
 ];
 
 const MOCK_SRT = [
@@ -295,6 +296,7 @@ function updateFontPreviewStyle() {
   const borderStyle = document.getElementById('border-style-select')?.value || '1';
   const alignment = document.getElementById('alignment-select')?.value || '2';
   const marginV = document.getElementById('margin-v-slider')?.value || 20;
+  const marginH = document.getElementById('margin-h-slider')?.value || 10;
 
   textEl.style.fontFamily = `"${fontName}", sans-serif`;
   textEl.style.fontSize = `${fontSize}px`;
@@ -309,11 +311,11 @@ function updateFontPreviewStyle() {
     container.style.justifyContent = justifyMap[alignment] || 'center';
     container.style.paddingBottom = `${marginV}px`;
     container.style.paddingTop = (alignment >= 5 && alignment <= 7) ? `${marginV}px` : '0';
+    container.style.paddingLeft = `${marginH}px`;
+    container.style.paddingRight = `${marginH}px`;
   }
   textEl.style.textAlign = alignMap[alignment] || 'center';
   textEl.style.width = (alignment === '2' || alignment === '6' || alignment === '10') ? '100%' : 'auto';
-  textEl.style.paddingLeft = (alignment === '1' || alignment === '5' || alignment === '9') ? '16px' : '';
-  textEl.style.paddingRight = (alignment === '3' || alignment === '7' || alignment === '11') ? '16px' : '';
 
   if (outline > 0) {
     textEl.style.webkitTextStroke = `${outline}px rgba(0,0,0,0.8)`;
