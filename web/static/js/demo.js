@@ -559,19 +559,9 @@ function onRegenerate() {
   }, 2200);
 }
 
-// ── Download SRT (real download, same as app.js) ────────────────────────────
+// ── Download SRT (demo: show toast, no real download) ──────────────────────
 function onDownloadSrt() {
-  const editor = document.getElementById('srt-editor');
-  if (!editor || !editor.value) { showError('No SRT to download.'); return; }
-  const blob = new Blob([editor.value], { type: 'application/x-subrip;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'subtitles.srt';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('SRT download requires the real app running locally');
 }
 
 // ── Download Video (demo: show inline message) ──────────────────────────────
