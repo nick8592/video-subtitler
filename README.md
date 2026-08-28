@@ -70,6 +70,12 @@ Then run the launcher:
 start.bat
 ```
 
+> **Tip:** Add `--yes` (or `-y`) to auto-accept all prompts — fully non-interactive:
+> ```bash
+> ./start.sh --yes    # Mac / Linux
+> start.bat --yes     # Windows
+> ```
+
 ### Option C — Manual Setup (developers)
 
 ```bash

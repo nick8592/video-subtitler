@@ -1,6 +1,36 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# ── Parse flags ──────────────────────────────────────────────────────────────
+AUTO_YES=false
+for arg in "$@"; do
+  case "$arg" in
+    --yes|-y) AUTO_YES=true ;;
+    --help|-h)
+      echo "Usage: ./setup.sh [--yes|-y]"
+      echo ""
+      echo "  --yes, -y   Auto-accept all prompts (fully non-interactive)"
+      echo "  --help, -h  Show this help message"
+      exit 0
+      ;;
+    *)
+      echo "Unknown flag: $arg" >&2
+      echo "Usage: ./setup.sh [--yes|-y]" >&2
+      exit 1
+      ;;
+  esac
+done
+
+ask_yes() {
+  if [ "$AUTO_YES" = true ]; then
+    echo "$1 [Y/n] Y (auto)"
+    return 0
+  fi
+  read -rp "$1 [Y/n] " answer
+  answer="${answer:-Y}"
+  [ "$answer" = "Y" ] || [ "$answer" = "y" ]
+}
+
 echo "=== Video Subtitler Setup ==="
 echo ""
 
@@ -10,18 +40,14 @@ if ! command -v ffmpeg &>/dev/null; then
     OS="$(uname -s)"
     if [ "$OS" = "Linux" ]; then
         if command -v apt-get &>/dev/null; then
-            read -rp "Install ffmpeg via apt? [Y/n] " answer
-            answer="${answer:-Y}"
-            if [ "$answer" = "Y" ] || [ "$answer" = "y" ]; then
+            if ask_yes "Install ffmpeg via apt?"; then
                 sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
             else
                 echo "Install it manually: sudo apt install ffmpeg"
                 exit 1
             fi
         elif command -v dnf &>/dev/null; then
-            read -rp "Install ffmpeg via dnf? [Y/n] " answer
-            answer="${answer:-Y}"
-            if [ "$answer" = "Y" ] || [ "$answer" = "y" ]; then
+            if ask_yes "Install ffmpeg via dnf?"; then
                 sudo dnf install -y ffmpeg
             else
                 echo "Install it manually: sudo dnf install ffmpeg"
@@ -33,9 +59,7 @@ if ! command -v ffmpeg &>/dev/null; then
         fi
     elif [ "$OS" = "Darwin" ]; then
         if command -v brew &>/dev/null; then
-            read -rp "Install ffmpeg via Homebrew? [Y/n] " answer
-            answer="${answer:-Y}"
-            if [ "$answer" = "Y" ] || [ "$answer" = "y" ]; then
+            if ask_yes "Install ffmpeg via Homebrew?"; then
                 brew install ffmpeg
             else
                 echo "Install it manually: brew install ffmpeg"
@@ -55,9 +79,7 @@ fi
 # ── 2. uv (recommended) or pip ───────────────────────────────────────────────
 if ! command -v uv &>/dev/null && ! command -v pip3 &>/dev/null; then
     echo "Neither uv nor pip3 found."
-    read -rp "Install uv (recommended package manager)? [Y/n] " answer
-    answer="${answer:-Y}"
-    if [ "$answer" = "Y" ] || [ "$answer" = "y" ]; then
+    if ask_yes "Install uv (recommended package manager)?"; then
         curl -LsSf https://astral.sh/uv/install.sh | sh
         export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
         if ! command -v uv &>/dev/null; then
@@ -74,13 +96,17 @@ fi
 
 # ── 3. Create virtual environment & install deps ──────────────────────────────
 if command -v uv &>/dev/null; then
-    echo "Creating venv with uv..."
-    uv venv .venv
+    if [ ! -d ".venv" ]; then
+        echo "Creating venv with uv..."
+        uv venv .venv
+    fi
     echo "Installing dependencies..."
     uv pip install -r requirements.txt
 else
-    echo "Creating venv with python3..."
-    python3 -m venv .venv
+    if [ ! -d ".venv" ]; then
+        echo "Creating venv with python3..."
+        python3 -m venv .venv
+    fi
     echo "Installing dependencies..."
     .venv/bin/pip install -r requirements.txt
 fi
