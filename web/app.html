@@ -299,14 +299,36 @@
                 </div>
               </div>
 
-              <!-- Vertical Margin -->
-              <div class="field">
-                <label class="field-label" for="margin-v-slider">
-                  <span>Vertical Margin</span>
-                  <span class="value" id="margin-v-value">20</span>
-                </label>
-                <input type="range" id="margin-v-slider" class="slider" min="0" max="200" value="20" step="5">
-                <p class="field-info">Distance from bottom edge in pixels</p>
+              <!-- Margin V + Margin H -->
+              <div class="grid-2">
+                <div class="field">
+                  <label class="field-label" for="margin-v-slider">
+                    <span>Margin V</span>
+                    <span class="value" id="margin-v-value">20</span>
+                  </label>
+                  <input type="range" id="margin-v-slider" class="slider" min="0" max="200" value="20" step="5">
+                  <p class="field-info">Distance from top/bottom edge</p>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="margin-h-slider">
+                    <span>Margin H</span>
+                    <span class="value" id="margin-h-value">10</span>
+                  </label>
+                  <input type="range" id="margin-h-slider" class="slider" min="0" max="200" value="10" step="5">
+                  <p class="field-info">Distance from left/right edge</p>
+                </div>
+              </div>
+
+              <!-- Live Font Preview -->
+              <div class="live-font-preview-wrapper">
+                <div class="live-font-preview" id="live-font-preview">
+                  <img class="live-font-preview-bg" src="static/img/sample_frame.jpg" alt="" loading="lazy">
+                  <div class="live-font-preview-text" id="live-font-preview-text">Sample Subtitle Text</div>
+                </div>
+                <div class="rendered-preview" id="rendered-preview" hidden>
+                  <img id="preview-image" alt="Rendered font preview">
+                </div>
+                <p class="live-font-preview-hint" id="live-preview-hint">Live approximation — click "Render Frame" for exact ffmpeg output</p>
               </div>
 
               <!-- Preview Font -->
@@ -315,7 +337,7 @@
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                   <circle cx="12" cy="12" r="3"/>
                 </svg>
-                Preview Font
+                Render Frame
               </button>
             </div>
           </div>
@@ -337,30 +359,10 @@
       <section class="panel results-panel" aria-label="Results">
         <header class="panel-header">
           <h2 class="panel-title">Results</h2>
-          <p class="panel-sub">Subtitled video, SRT, and font preview.</p>
+          <p class="panel-sub">Subtitled video and SRT output.</p>
         </header>
 
-        <!-- 7. Font Preview (hardcode mode only) -->
-        <div class="block" id="preview-block">
-          <div class="block-label">
-            <span>Font Preview</span>
-            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-tertiary)">hardcode only</span>
-          </div>
-          <div class="preview-frame">
-            <img id="preview-image" alt="Font preview" hidden>
-            <div class="preview-empty" id="preview-empty">
-              <div class="preview-empty-icon" aria-hidden="true">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                  <circle cx="12" cy="12" r="3"/>
-                </svg>
-              </div>
-              <p class="preview-empty-text">Click &ldquo;Preview Font&rdquo; to render a frame with your subtitle styling.</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- 8. Subtitled Video -->
+        <!-- 7. Subtitled Video -->
         <div class="block">
           <div class="block-label">
             <span>Subtitled Video</span>
