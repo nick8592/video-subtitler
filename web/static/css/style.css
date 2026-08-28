@@ -1366,13 +1366,12 @@ h3, .h3 {
 
 
 /* =========================================================
-   16. Accordion (Collapsible Section)
-   ========================================================= */
+    16. Accordion (Collapsible Section)
+    ========================================================= */
 .accordion {
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  overflow: hidden;
   transition: border-color var(--transition-fast) var(--ease);
 }
 
@@ -1390,7 +1389,12 @@ h3, .h3 {
   color: var(--color-text);
   cursor: pointer;
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transition: background var(--transition-fast) var(--ease);
+  /* Ensure hit area is at least 44px for mobile touch targets */
+  min-height: 48px;
+  position: relative;
+  z-index: 1;
 }
 
 .accordion-header:hover { background: var(--color-surface-hover); }
@@ -1421,17 +1425,23 @@ h3, .h3 {
 .accordion.open .accordion-chevron { transform: rotate(180deg); }
 
 .accordion-body {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.4s var(--ease);
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s var(--ease);
 }
 
-.accordion.open .accordion-body { max-height: 1400px; }
+.accordion.open .accordion-body {
+  grid-template-rows: 1fr;
+}
 
 .accordion-body-inner {
-  padding: 4px 16px 18px;
-  border-top: 1px solid var(--color-border);
   overflow: hidden;
+  padding: 0 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.accordion.open .accordion-body-inner {
+  padding: 4px 16px 18px;
 }
 
 .accordion-body-inner > * + * { margin-top: 14px; }
@@ -2183,6 +2193,10 @@ textarea:focus-visible {
   .nav-open-app { padding: 8px 10px; }
   .nav-link { padding: 8px 10px; }
 
+  /* Nav touch targets: ensure 44px minimum for iOS */
+  .nav-icon-btn { width: 44px; height: 44px; }
+  .nav-link { min-height: 44px; }
+
   /* Hero stats: 4 cols → 2 cols */
   .hero-stats {
     grid-template-columns: repeat(2, 1fr);
@@ -2199,6 +2213,10 @@ textarea:focus-visible {
   /* Grids: collapse */
   .grid-3 { grid-template-columns: 1fr; }
   .grid-2 { grid-template-columns: 1fr; }
+
+  /* Form controls: larger touch targets on mobile */
+  .select { min-height: 44px; }
+  .btn { min-height: 44px; }
 }
 
 /* ----- Small phone (≤ 480px) ----- */
@@ -2387,18 +2405,115 @@ body {
   }
 }
 
+/* Mobile-specific fixes for iPhone */
+@media (max-width: 640px) {
+  .app-main {
+    padding-top: calc(var(--nav-h) + 16px);
+    padding-bottom: 32px;
+  }
+
+  .panel {
+    padding: 20px 16px;
+    border-radius: 14px;
+  }
+
+  .mode-toggle {
+    border-radius: 10px;
+  }
+
+  .mode-btn {
+    padding: 10px 10px;
+  }
+
+  .accordion {
+    border-radius: 10px;
+  }
+
+  .accordion-body-inner {
+    padding: 0 12px;
+  }
+
+  .accordion.open .accordion-body-inner {
+    padding: 4px 12px 16px;
+  }
+
+  .accordion-header {
+    padding: 12px 12px;
+    font-size: 13px;
+  }
+
+  /* Prevent horizontal overflow in font customization */
+  .live-font-preview {
+    border-radius: 8px;
+  }
+
+  .srt-editor-wrap {
+    border-radius: 10px;
+  }
+
+  .srt-editor {
+    min-height: 160px;
+    max-height: 320px;
+    font-size: 12px;
+  }
+
+  .video-frame,
+  .preview-frame {
+    border-radius: 10px;
+  }
+
+  .upload-zone {
+    border-radius: 12px;
+  }
+
+  .upload-zone-filled {
+    padding: 10px;
+  }
+
+  .demo-video-placeholder {
+    border-radius: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-grid {
+    gap: 12px;
+  }
+
+  .panel {
+    padding: 16px 14px;
+  }
+
+  .panel-header {
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+  }
+
+  .panel-title {
+    font-size: 16px;
+  }
+
+  .btn-lg {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+
+  /* Video meta row: prevent overflow on narrow screens */
+  .video-meta {
+    flex-wrap: wrap;
+  }
+
+  .video-filename {
+    min-width: 0;
+    max-width: 160px;
+  }
+}
+
 /* Grid helpers at small breakpoint */
 @media (max-width: 520px) {
   .grid-2, .grid-3 {
     grid-template-columns: 1fr;
     gap: 10px;
-  }
-
-  /* Accordion: ensure reliable tap toggle on mobile */
-  .accordion-header {
-    min-height: 48px;
-    position: relative;
-    z-index: 1;
   }
 }
 
