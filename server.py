@@ -102,7 +102,7 @@ def get_system_fonts() -> list[str]:
 
 def _build_style(
     font_name: str, font_size: int, font_color: str,
-    outline: int, shadow: int, border_style: int, alignment: int, margin_v: int,
+    outline: int, shadow: int, border_style: int, alignment: int, margin_v: int, margin_h: int,
 ) -> str:
     return build_force_style(
         font_name=font_name,
@@ -113,6 +113,7 @@ def _build_style(
         border_style=border_style,
         alignment=alignment,
         margin_v=margin_v,
+        margin_h=margin_h,
     )
 
 
@@ -263,6 +264,7 @@ async def api_process(
     border_style: int = Form(1),
     alignment: int = Form(2),
     margin_v: int = Form(20),
+    margin_h: int = Form(10),
 ) -> EventSourceResponse:
     """Process an uploaded video → SSE progress stream → final result event."""
     job_id = uuid.uuid4().hex
@@ -303,7 +305,7 @@ async def api_process(
             srt_path = Path(tmpdir) / f"{stem}.srt"
             output_path = Path(tmpdir) / f"{stem}_subtitled.mp4"
             style = _build_style(font_name, font_size, font_color,
-                                 outline, shadow, border_style, alignment, margin_v)
+                                 outline, shadow, border_style, alignment, margin_v, margin_h)
 
             yield _sse({"stage": "extracting", "progress": 10, "message": "Extracting audio..."})
             await asyncio.to_thread(extract_audio, upload_path, audio_path)
@@ -379,6 +381,7 @@ async def api_regenerate(
     border_style: int = Form(1),
     alignment: int = Form(2),
     margin_v: int = Form(20),
+    margin_h: int = Form(10),
 ) -> EventSourceResponse:
     """Regenerate the subtitled video from edited SRT text for an existing job."""
     job = _jobs.get(job_id)
@@ -404,7 +407,7 @@ async def api_regenerate(
             edited_srt_path = Path(tmpdir) / f"{video_path.stem}_edited.srt"
             output_path = Path(tmpdir) / f"{video_path.stem}_subtitled.mp4"
             style = _build_style(font_name, font_size, font_color,
-                                 outline, shadow, border_style, alignment, margin_v)
+                                 outline, shadow, border_style, alignment, margin_v, margin_h)
 
             yield _sse({"stage": "preparing", "progress": 10, "message": "Writing edited SRT..."})
             async with aiofiles.open(edited_srt_path, "w", encoding="utf-8") as f:
@@ -456,6 +459,7 @@ async def api_preview(
     border_style: int = Form(1),
     alignment: int = Form(2),
     margin_v: int = Form(20),
+    margin_h: int = Form(10),
 ) -> FileResponse:
     """Render one frame with a sample subtitle and return the PNG."""
     tmpdir = tempfile.mkdtemp(prefix="vs-preview-")
@@ -469,7 +473,7 @@ async def api_preview(
         await video.close()
 
     style = _build_style(font_name, font_size, font_color,
-                         outline, shadow, border_style, alignment, margin_v)
+                         outline, shadow, border_style, alignment, margin_v, margin_h)
     try:
         await asyncio.to_thread(
             generate_preview_frame,
