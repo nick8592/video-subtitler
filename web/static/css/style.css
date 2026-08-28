@@ -1158,7 +1158,7 @@ h3, .h3 {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding: 0 0 24px 0;
+  padding: 0 10px 20px 10px;
 }
 
 .live-font-preview-bg {

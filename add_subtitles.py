@@ -68,6 +68,7 @@ def build_force_style(
     border_style: int = 1,
     alignment: int = 2,
     margin_v: int = 20,
+    margin_h: int = 10,
 ) -> str:
     """Build an ASS force_style string for FFmpeg's subtitles filter."""
     return (
@@ -75,7 +76,7 @@ def build_force_style(
         f"PrimaryColour={primary_colour},"
         f"Outline={outline},Shadow={shadow},"
         f"BorderStyle={border_style},Alignment={alignment},"
-        f"MarginV={margin_v}"
+        f"MarginV={margin_v},MarginL={margin_h},MarginR={margin_h}"
     )
 
 
@@ -360,6 +361,7 @@ def process_videos(
     border_style: int = 1,
     alignment: int = 2,
     margin_v: int = 20,
+    margin_h: int = 10,
 ) -> None:
     print(f"Processing {len(videos)} video(s)\n")
 
@@ -396,6 +398,7 @@ def process_videos(
                         border_style=border_style,
                         alignment=alignment,
                         margin_v=margin_v,
+                        margin_h=margin_h,
                     )
                     hardcode_subtitle(video, srt_path, output_path, force_style=style)
                 else:
@@ -421,6 +424,7 @@ def main():
     parser.add_argument("--border-style", type=int, default=1, choices=[1, 3], help="Border style: 1=outline+shadow, 3=opaque box (default: 1)")
     parser.add_argument("--alignment", type=int, default=2, choices=[1,2,3,5,6,7,9,10,11], help="Subtitle alignment: 1-3=bottom left/center/right, 5-7=top left/center/right, 9-11=mid left/center/right (default: 2)")
     parser.add_argument("--margin-v", type=int, default=20, help="Vertical margin in pixels for hardcoded subtitles (default: 20)")
+    parser.add_argument("--margin-h", type=int, default=10, help="Horizontal margin in pixels for hardcoded subtitles (default: 10)")
     args = parser.parse_args()
 
     if args.file:
@@ -441,7 +445,7 @@ def main():
         videos, args.srt, args.mux, args.hardcode, args.model, args.language,
         font_name=args.font_name, font_size=args.font_size, font_color=args.font_color,
         outline=args.outline, shadow=args.shadow, border_style=args.border_style,
-        alignment=args.alignment, margin_v=args.margin_v,
+        alignment=args.alignment, margin_v=args.margin_v, margin_h=args.margin_h,
     )
 
 
