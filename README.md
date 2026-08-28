@@ -13,24 +13,41 @@
 
 Auto-generate and embed subtitles for `.mp4` videos — 100% local, no uploads, no API keys.
 
+For creators who want subtitles without uploading to cloud services or paying for APIs. Everything runs on your machine — your videos never leave it.
+
 - **Toggleable subtitles** — add as a track viewers can turn on/off, original quality preserved
 - **Always-visible subtitles** — burn into video for Instagram, TikTok, GitHub
 - **Font customization** — choose font, size, color, outline, shadow, alignment and preview before generating
 - **Local web UI** — upload a video, pick your settings, download the result — all from the browser
 - **GPU accelerated** — uses NVIDIA GPU if available, falls back to CPU automatically
 
+## Table of Contents
+
+- [Prerequisites](#prerequisites)
+- [Quick Start](#quick-start)
+- [Using the Web UI](#using-the-web-ui)
+- [Example](#example)
+- [How it works](#how-it-works)
+- [Advanced Usage](#advanced-usage)
+- [Configuration](#configuration)
+- [Acknowledgments](#acknowledgments)
+- [License](#license)
+
+## Prerequisites
+
+- **ffmpeg** — free video processing tool. The launcher can install it automatically, or install it yourself: `apt install ffmpeg` (Linux) / `brew install ffmpeg` (Mac) / `winget install ffmpeg` (Windows)
+- **Python 3.10+** — [download here](https://www.python.org/downloads/) (Windows: check "Add to PATH")
+- **NVIDIA GPU** — optional but makes subtitle generation much faster. Works without one.
+
 ## Quick Start
 
 ### Option A — No terminal needed (easiest)
 
-1. Go to [github.com/nick8592/video-subtitler](https://github.com/nick8592/video-subtitler)
-2. Click the green **Code** button → **Download ZIP**
-3. Extract the ZIP file
-4. **Windows:** double-click `start.bat`
+1. Click the green **Code** button above → **Download ZIP**
+2. Extract the ZIP file
+3. **Windows:** double-click `start.bat`
    **Mac:** double-click `start.command`
    **Linux:** open a terminal in the extracted folder and run `./start.sh`
-
-The launcher will check for required tools (ffmpeg, Python), offer to install anything missing, download the AI model (~3 GB) on first run, and open the web UI in your browser.
 
 > **Mac users:** If double-clicking `start.command` says "cannot be opened," right-click it → **Open** → click **Open** again. This is a one-time macOS security step.
 
@@ -53,12 +70,6 @@ Then run the launcher:
 start.bat
 ```
 
-That's it. The script will:
-1. Check for required tools (ffmpeg, Python) and offer to install them if missing
-2. Set up the Python environment automatically
-3. Download the default AI model (~3 GB)
-4. Start the web UI and open it in your browser
-
 ### Option C — Manual Setup (developers)
 
 ```bash
@@ -69,13 +80,9 @@ source .venv/bin/activate
 python3 server.py
 ```
 
-### What You Need
+All three options will: check for required tools (ffmpeg, Python) and offer to install anything missing, set up the Python environment, download the AI model (~3 GB) on first run, and start the web UI in your browser.
 
-- **ffmpeg** — free video processing tool. The launcher can install it automatically, or install it yourself: `apt install ffmpeg` (Linux) / `brew install ffmpeg` (Mac) / `winget install ffmpeg` (Windows)
-- **Python 3.10+** — [download here](https://www.python.org/downloads/) (Windows: check "Add to PATH")
-- **NVIDIA GPU** — optional but makes subtitle generation much faster. Works without one.
-
-### Using the Web UI
+## Using the Web UI
 
 1. Open `http://127.0.0.1:7860` (opens automatically with `start.sh`)
 2. Upload your video
@@ -85,33 +92,7 @@ python3 server.py
 
 > **Tip:** The "Always visible" mode lets you customize fonts, colors, and positioning. Click "Render Frame" to preview how subtitles will look before generating the full video.
 
-### Using the Command Line
-
-For batch processing multiple videos:
-
-```bash
-source .venv/bin/activate
-
-# Generate toggleable subtitles for all videos in a folder
-python3 add_subtitles.py /path/to/videos
-
-# Burn subtitles into video (always visible, for social media)
-python3 add_subtitles.py /path/to/videos --hardcode
-
-# Generate .srt files only (for editing in CapCut, etc.)
-python3 add_subtitles.py /path/to/videos --srt
-
-# Process a single .mp4 file
-python3 add_subtitles.py /path/to/video.mp4 --file
-
-# Override model and language
-python3 add_subtitles.py /path/to/videos --model medium --language en
-
-# Customize font styling (always-visible mode only)
-python3 add_subtitles.py /path/to/videos --hardcode --font-name "Arial" --font-size 18 --font-color "#FFFF00" --outline 2
-```
-
-> **Note:** The CLI is the only way to process **multiple videos at once**. The web UI handles one video at a time.
+> **Note:** The web UI processes one video at a time. For batch processing of multiple videos, use the [command line](#command-line).
 
 ## Example
 
@@ -151,6 +132,34 @@ For each `.mp4` in the target directory:
 
 Idempotent — skips files that already have `.srt` or `_subtitled.mp4`. Delete those files to re-run.
 
+## Advanced Usage
+
+### Command Line
+
+For batch processing multiple videos:
+
+> ⚠️ **Activate the virtual environment first:** `source .venv/bin/activate`
+
+```bash
+# Generate toggleable subtitles for all videos in a folder
+python3 add_subtitles.py /path/to/videos
+
+# Burn subtitles into video (always visible, for social media)
+python3 add_subtitles.py /path/to/videos --hardcode
+
+# Generate .srt files only (for editing in CapCut, etc.)
+python3 add_subtitles.py /path/to/videos --srt
+
+# Process a single .mp4 file
+python3 add_subtitles.py /path/to/video.mp4 --file
+
+# Override model and language
+python3 add_subtitles.py /path/to/videos --model medium --language en
+
+# Customize font styling (always-visible mode only)
+python3 add_subtitles.py /path/to/videos --hardcode --font-name "Arial" --font-size 18 --font-color "#FFFF00" --outline 2
+```
+
 ## Configuration
 
 ### Web UI
@@ -161,8 +170,6 @@ All settings are configured through the web interface. The app automatically det
 - **Advanced settings** — device (GPU/CPU) and quality level are available under "Advanced Settings"
 
 Font customization controls (font name, size, color, outline, shadow, border style, alignment, vertical margin) are available when **Always visible** mode is selected. A **Render Frame** button shows exactly how subtitles will look before generating the full video.
-
-> **Note:** The web UI processes one video at a time. For batch processing of multiple videos, use the command line.
 
 ### Command Line
 
@@ -178,17 +185,17 @@ Set via environment variables or edit the constants at the top of `add_subtitles
 
 Font styling options (always-visible mode only):
 
-| CLI Flag | Default | Description |
-|---|---|---|
-| `--font-name` | `Literata` | Font family name |
-| `--font-size` | `12` | Font size in points |
-| `--font-color` | `#FFFFFF` | Text color (hex) |
-| `--outline` | `0` | Outline/border thickness |
-| `--shadow` | `0` | Shadow depth in pixels |
-| `--border-style` | `1` | `1` = outline + shadow, `3` = opaque box |
-| `--alignment` | `2` | Position: 1–3 bottom, 5–7 top, 9–11 mid |
-| `--margin-v` | `20` | Vertical margin from edge in pixels |
-| `--margin-h` | `10` | Horizontal margin from edge in pixels |
+| Setting | CLI Flag | Default | Description |
+|---|---|---|---|
+| Font name | `--font-name` | `Literata` | Font family name |
+| Font size | `--font-size` | `12` | Font size in points |
+| Font color | `--font-color` | `#FFFFFF` | Text color (hex) |
+| Outline | `--outline` | `0` | Outline/border thickness |
+| Shadow | `--shadow` | `0` | Shadow depth in pixels |
+| Border style | `--border-style` | `1` | `1` = outline + shadow, `3` = opaque box |
+| Alignment | `--alignment` | `2` | Position: 1–3 bottom, 5–7 top, 9–11 mid |
+| Vertical margin | `--margin-v` | `20` | Vertical margin from edge in pixels |
+| Horizontal margin | `--margin-h` | `10` | Horizontal margin from edge in pixels |
 
 ## Acknowledgments
 
