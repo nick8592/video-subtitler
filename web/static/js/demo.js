@@ -119,7 +119,8 @@ function setupAccordion() {
   const toggle = document.getElementById('font-accordion-toggle');
   const section = document.getElementById('font-section');
   if (!toggle || !section) return;
-  toggle.addEventListener('click', () => {
+  toggle.addEventListener('click', (e) => {
+    e.preventDefault();
     section.classList.toggle('open');
     const expanded = section.classList.contains('open');
     toggle.setAttribute('aria-expanded', String(expanded));
@@ -130,7 +131,8 @@ function setupAdvancedSettings() {
   const toggle = document.getElementById('advanced-toggle');
   const section = document.getElementById('advanced-section');
   if (!toggle || !section) return;
-  toggle.addEventListener('click', () => {
+  toggle.addEventListener('click', (e) => {
+    e.preventDefault();
     section.classList.toggle('open');
     const expanded = section.classList.contains('open');
     toggle.setAttribute('aria-expanded', String(expanded));
