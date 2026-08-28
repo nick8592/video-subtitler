@@ -88,14 +88,13 @@ fi
 echo ""
 
 # ── 4. Pre-download default Whisper model ──────────────────────────────────────
-# Only download the 'small' model (~500 MB) as default.
-# Larger models (medium, large-v3) can be downloaded on-demand from the web UI.
-DEFAULT_MODEL="small"
+# Download the 'large-v3' model — the default for both CLI and web UI.
+DEFAULT_MODEL="large-v3"
 
 if [ -n "${HF_TOKEN:-}" ]; then
     echo "Pre-downloading Whisper model '${DEFAULT_MODEL}' (HF_TOKEN set for faster download)..."
 else
-    echo "Pre-downloading Whisper model '${DEFAULT_MODEL}' (~500 MB)..."
+    echo "Pre-downloading Whisper model '${DEFAULT_MODEL}' (~3 GB)..."
     echo "  Tip: set HF_TOKEN env var for faster downloads & higher rate limits."
     echo "  https://huggingface.co/settings/tokens"
 fi
@@ -107,9 +106,6 @@ from faster_whisper import WhisperModel
 print(f'  Downloading ${DEFAULT_MODEL} model...', flush=True)
 WhisperModel('${DEFAULT_MODEL}', device='cpu', compute_type='int8')
 print(f'  ✓ ${DEFAULT_MODEL} model cached')
-print('')
-print('  Larger models (medium, large-v3) can be downloaded later from the web UI.')
-print('  Or run:  .venv/bin/python3 -c \"from faster_whisper import WhisperModel; WhisperModel(\\\"large-v3\\\", device=\\\"cpu\\\", compute_type=\\\"int8\\\")\"')
 "
 
 echo ""

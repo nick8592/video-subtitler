@@ -36,7 +36,7 @@ start.bat
 That's it. The script will:
 1. Check for required tools (ffmpeg, Python) and offer to install them if missing
 2. Set up the Python environment automatically
-3. Download the default AI model (~500 MB)
+3. Download the default AI model (~3 GB)
 4. Start the web UI and open it in your browser
 
 ### Manual Setup
@@ -139,7 +139,7 @@ Idempotent — skips files that already have `.srt` or `_subtitled.mp4`. Delete 
 
 All settings are configured through the web interface. The app automatically detects whether you have an NVIDIA GPU — if not, it uses CPU mode.
 
-- **Model size** — bigger = more accurate but slower (default: small)
+- **Model size** — bigger = more accurate but slower (default: large-v3)
 - **Advanced settings** — device (GPU/CPU) and quality level are available under "Advanced Settings"
 
 Font customization controls (font name, size, color, outline, shadow, border style, alignment, vertical margin) are available when **Always visible** mode is selected. A **Render Frame** button shows exactly how subtitles will look before generating the full video.
