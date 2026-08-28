@@ -923,13 +923,14 @@
           </div>
           <div class="hero-stat">
             <span class="hero-stat-value">0s</span>
-            <span class="hero-stat-label">re-encode</span>
+            <span class="hero-stat-label">re-encode*</span>
           </div>
           <div class="hero-stat">
             <span class="hero-stat-value">MIT</span>
             <span class="hero-stat-label">licensed</span>
           </div>
         </div>
+        <p style="font-size:12px;color:var(--text-tertiary);margin-top:12px;font-family:'JetBrains Mono',monospace">* soft subtitle mode only — burned-in mode requires re-encode</p>
       </div>
     </section>
 
@@ -1048,7 +1049,7 @@
               </div>
             </div>
             <h3 class="step-title">Upload</h3>
-            <p class="step-desc">Drop one or many MP4 files into the web UI. ffmpeg extracts a 16 kHz mono WAV track from each one — no upload, no waiting.</p>
+            <p class="step-desc">Drop an MP4 file into the web UI. ffmpeg extracts a 16 kHz mono WAV track — no upload, no waiting.</p>
           </div>
           <div class="step reveal">
             <div class="step-header">
@@ -1060,7 +1061,7 @@
               </div>
             </div>
             <h3 class="step-title">Generate</h3>
-            <p class="step-desc">faster-whisper detects the language and writes a perfectly-timed `.srt`. CUDA by default, CPU fallback if no GPU is found.</p>
+            <p class="step-desc">faster-whisper detects the language and writes a timed `.srt`. CUDA by default, CPU fallback if no GPU is found.</p>
           </div>
           <div class="step reveal">
             <div class="step-header">
@@ -1088,7 +1089,7 @@
         <div class="section-header reveal">
           <span class="eyebrow">Quick start</span>
           <h2 class="section-title">Up and running in one script.</h2>
-          <p class="section-subtitle">`setup.sh` creates a venv, installs dependencies, and pre-downloads every Whisper model size. Then start the web UI.</p>
+          <p class="section-subtitle"><code>start.sh</code> checks prerequisites, sets up the environment, and pre-downloads the default Whisper model (large-v3, ~3 GB). Then the web UI opens in your browser.</p>
         </div>
         <div class="quickstart">
           <div class="quickstart-info reveal">
@@ -1097,7 +1098,7 @@
             <ul class="quickstart-prereqs">
               <li>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                <span><strong style="color:var(--text);font-weight:500">ffmpeg</strong> — free video tool (auto-installed on Mac/Linux)</span>
+                <span><strong style="color:var(--text);font-weight:500">ffmpeg</strong> — free video tool (installable via the launcher script)</span>
               </li>
               <li>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -1116,14 +1117,15 @@
                 <span class="code-title">~/video-subtitler</span>
                 <button class="code-copy" id="copy-btn" type="button">copy</button>
               </div>
-              <pre class="code-body"><code><span class="comment"># Mac / Linux</span>
-<span class="prompt">$ </span><span class="cmd">./start.sh</span>
+              <pre class="code-body"><code><span class="comment"># Mac (double-click start.command in Finder)</span>
+<span class="comment"># Mac / Linux (terminal — fully automatic)</span>
+<span class="prompt">$ </span><span class="cmd">./start.sh --yes</span>
 
-<span class="comment"># Windows</span>
-<span class="prompt">></span> <span class="cmd">start.bat</span>
+<span class="comment"># Windows (fully automatic)</span>
+<span class="prompt">></span> <span class="cmd">start.bat --yes</span>
 
 <span class="comment">  → installs prerequisites, sets up environment,</span>
-<span class="comment">  → downloads AI model, opens browser — done!</span></code></pre>
+<span class="comment">  → downloads AI model (~3 GB), opens browser — done!</span></code></pre>
               <div class="code-note">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
@@ -1145,7 +1147,7 @@
           <div style="position:absolute;inset:0;background:radial-gradient(ellipse at center top,var(--accent-soft),transparent 60%);pointer-events:none"></div>
           <div style="position:relative">
             <h2 style="font-size:32px;font-weight:700;letter-spacing:-0.02em;margin-bottom:12px;color:var(--text)">Ready to subtitle something?</h2>
-            <p style="color:var(--text-secondary);max-width:480px;margin:0 auto 28px;font-size:16px">Try the interactive demo — or run locally for full subtitle generation. Your files never leave your machine.</p>
+            <p style="color:var(--text-secondary);max-width:480px;margin:0 auto 28px;font-size:16px">Try the interactive demo — or <a href="#quick-start" style="color:var(--accent);text-decoration:underline">run locally</a> for full subtitle generation. Your files never leave your machine.</p>
             <a href="demo" class="btn btn-primary" style="font-size:16px;padding:14px 24px">
               Try the Demo
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

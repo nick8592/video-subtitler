@@ -8,7 +8,29 @@ REM
 REM Double-click this file to start Video Subtitler.
 REM It will check for prerequisites, set up the Python environment,
 REM download the AI model on first run, and open the web UI.
+REM
+REM   start.bat          interactive (prompts before installing)
+REM   start.bat --yes    fully automatic (no prompts)
 REM ─────────────────────────────────────────────────────────────────────────────
+
+REM ── Parse flags ─────────────────────────────────────────────────────────────
+set "AUTO_YES=false"
+for %%a in (%*) do (
+    if /i "%%a"=="--yes" set "AUTO_YES=true"
+    if /i "%%a"=="-y" set "AUTO_YES=true"
+    if /i "%%a"=="--help" goto :show_help
+    if /i "%%a"=="-h" goto :show_help
+)
+goto :flags_done
+
+:show_help
+echo Usage: start.bat [--yes]
+echo.
+echo   --yes, -y   Auto-accept all prompts (fully non-interactive)
+echo   --help, -h  Show this help message
+exit /b 0
+
+:flags_done
 
 echo.
 echo  ╔══════════════════════════════════════════════════╗
@@ -27,8 +49,13 @@ if %errorlevel% neq 0 (
     if %errorlevel% equ 0 (
         echo      winget is available. Install ffmpeg now?
         echo.
-        set /p "answer=      Install ffmpeg via winget? [Y/n] "
-        if "!answer!"=="" set "answer=Y"
+        if "!AUTO_YES!"=="true" (
+            echo      Install ffmpeg via winget? [Y/n] Y ^(auto^)
+            set "answer=Y"
+        ) else (
+            set /p "answer=      Install ffmpeg via winget? [Y/n] "
+            if "!answer!"=="" set "answer=Y"
+        )
         if /i "!answer!"=="Y" (
             echo.
             echo  [~] Installing ffmpeg via winget...
@@ -52,8 +79,13 @@ if %errorlevel% neq 0 (
     where choco >nul 2>&1
     if %errorlevel% equ 0 (
         echo.
-        set /p "answer=      Install ffmpeg via Chocolatey? [Y/n] "
-        if "!answer!"=="" set "answer=Y"
+        if "!AUTO_YES!"=="true" (
+            echo      Install ffmpeg via Chocolatey? [Y/n] Y ^(auto^)
+            set "answer=Y"
+        ) else (
+            set /p "answer=      Install ffmpeg via Chocolatey? [Y/n] "
+            if "!answer!"=="" set "answer=Y"
+        )
         if /i "!answer!"=="Y" (
             echo.
             echo  [~] Installing ffmpeg via Chocolatey...
@@ -122,8 +154,13 @@ where uv >nul 2>&1
 if %errorlevel% neq 0 (
     echo.
     echo  uv is a fast Python package manager that makes installation quicker.
-    set /p "answer=  Install uv now? [Y/n] "
-    if "!answer!"=="" set "answer=Y"
+    if "!AUTO_YES!"=="true" (
+        echo  Install uv now? [Y/n] Y ^(auto^)
+        set "answer=Y"
+    ) else (
+        set /p "answer=  Install uv now? [Y/n] "
+        if "!answer!"=="" set "answer=Y"
+    )
     if /i "!answer!"=="Y" (
         echo  [~] Installing uv...
         powershell -ExecutionPolicy ByPass -NoProfile -Command "irm https://astral.sh/uv/install.ps1 | iex"

@@ -5,11 +5,32 @@
 # This script does everything: installs prerequisites if missing, sets up the
 # Python environment, and starts the web UI.  Just double-click or run:
 #
-#   ./start.sh
+#   ./start.sh          # interactive (prompts before installing)
+#   ./start.sh --yes    # fully automatic (no prompts)
 #
 # The browser opens automatically.
 # ──────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
+
+# ── Parse flags ──────────────────────────────────────────────────────────────
+AUTO_YES=false
+for arg in "$@"; do
+  case "$arg" in
+    --yes|-y) AUTO_YES=true ;;
+    --help|-h)
+      echo "Usage: ./start.sh [--yes|-y]"
+      echo ""
+      echo "  --yes, -y   Auto-accept all prompts (fully non-interactive)"
+      echo "  --help, -h  Show this help message"
+      exit 0
+      ;;
+    *)
+      echo "Unknown flag: $arg" >&2
+      echo "Usage: ./start.sh [--yes|-y]" >&2
+      exit 1
+      ;;
+  esac
+done
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -25,6 +46,16 @@ info()  { printf "${GREEN}✔${RESET} %s\n" "$*"; }
 warn()  { printf "${YELLOW}⚠${RESET} %s\n" "$*"; }
 error() { printf "${RED}✖${RESET} %s\n" "$*" >&2; }
 
+ask_yes() {
+  if [ "$AUTO_YES" = true ]; then
+    echo "$1 [Y/n] Y (auto)"
+    return 0
+  fi
+  read -rp "$1 [Y/n] " answer
+  answer="${answer:-Y}"
+  [ "$answer" = "Y" ] || [ "$answer" = "y" ]
+}
+
 # ── 1. ffmpeg ─────────────────────────────────────────────────────────────────
 if ! command -v ffmpeg &>/dev/null; then
     echo ""
@@ -35,9 +66,7 @@ if ! command -v ffmpeg &>/dev/null; then
     if [ "$OS" = "Linux" ]; then
         if command -v apt-get &>/dev/null; then
             echo "  Install with:  sudo apt install ffmpeg"
-            read -rp "  Install now? [Y/n] " answer
-            answer="${answer:-Y}"
-            if [ "$answer" = "Y" ] || [ "$answer" = "y" ]; then
+            if ask_yes "  Install now?"; then
                 sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
                 info "ffmpeg installed."
             else
@@ -46,9 +75,7 @@ if ! command -v ffmpeg &>/dev/null; then
             fi
         elif command -v dnf &>/dev/null; then
             echo "  Install with:  sudo dnf install ffmpeg"
-            read -rp "  Install now? [Y/n] " answer
-            answer="${answer:-Y}"
-            if [ "$answer" = "Y" ] || [ "$answer" = "y" ]; then
+            if ask_yes "  Install now?"; then
                 sudo dnf install -y ffmpeg
                 info "ffmpeg installed."
             else
@@ -61,9 +88,7 @@ if ! command -v ffmpeg &>/dev/null; then
         fi
     elif [ "$OS" = "Darwin" ]; then
         if command -v brew &>/dev/null; then
-            read -rp "  Install ffmpeg via Homebrew? [Y/n] " answer
-            answer="${answer:-Y}"
-            if [ "$answer" = "Y" ] || [ "$answer" = "y" ]; then
+            if ask_yes "  Install ffmpeg via Homebrew?"; then
                 brew install ffmpeg
                 info "ffmpeg installed."
             else
@@ -106,11 +131,8 @@ fi
 if ! command -v uv &>/dev/null; then
     echo ""
     echo "${BOLD}uv${RESET} is a fast Python package manager that makes installation quicker."
-    read -rp "Install uv now? [Y/n] " answer
-    answer="${answer:-Y}"
-    if [ "$answer" = "Y" ] || [ "$answer" = "y" ]; then
+    if ask_yes "Install uv now?"; then
         curl -LsSf https://astral.sh/uv/install.sh | sh
-        # Re-source shell env so uv is on PATH
         export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
         if command -v uv &>/dev/null; then
             info "uv installed."

@@ -15,4 +15,4 @@ if [ ! -x "$SCRIPT_DIR/start.sh" ]; then
 fi
 
 cd "$SCRIPT_DIR"
-exec ./start.sh
+exec ./start.sh "$@"
