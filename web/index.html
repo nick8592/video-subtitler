@@ -1029,20 +1029,20 @@
         </div>
         <div class="quickstart">
           <div class="quickstart-info reveal">
-            <h3>Prerequisites</h3>
-            <p>Two system tools and a Python environment — that's it.</p>
+            <h3>One-Click Launch</h3>
+            <p>Just run the start script — everything sets up automatically, and your browser opens the app.</p>
             <ul class="quickstart-prereqs">
               <li>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                <span><strong style="color:var(--text);font-weight:500">ffmpeg</strong> — install via <code style="font-family:'JetBrains Mono',monospace;font-size:13px;background:var(--surface-2);padding:2px 6px;border-radius:4px">apt install ffmpeg</code> or <code style="font-family:'JetBrains Mono',monospace;font-size:13px;background:var(--surface-2);padding:2px 6px;border-radius:4px">brew install ffmpeg</code></span>
+                <span><strong style="color:var(--text);font-weight:500">ffmpeg</strong> — free video tool (auto-installed on Mac/Linux)</span>
               </li>
               <li>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                <span><strong style="color:var(--text);font-weight:500">Python 3.10+</strong> with <code style="font-family:'JetBrains Mono',monospace;font-size:13px;background:var(--surface-2);padding:2px 6px;border-radius:4px">uv</code> recommended (or python3-venv)</span>
+                <span><strong style="color:var(--text);font-weight:500">Python 3.10+</strong> — <a href="https://www.python.org/downloads/" style="color:var(--accent);text-decoration:underline">download here</a></span>
               </li>
               <li>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                <span><strong style="color:var(--text);font-weight:500">NVIDIA GPU with CUDA</strong> recommended — CPU mode works automatically</span>
+                <span><strong style="color:var(--text);font-weight:500">NVIDIA GPU</strong> — optional, makes it faster (CPU works automatically)</span>
               </li>
             </ul>
           </div>
@@ -1053,16 +1053,19 @@
                 <span class="code-title">~/video-subtitler</span>
                 <button class="code-copy" id="copy-btn" type="button">copy</button>
               </div>
-              <pre class="code-body"><code><span class="prompt">$ </span><span class="cmd">git clone</span> https://github.com/nick8592/video-subtitler.git
-<span class="prompt">$ </span><span class="cmd">cd</span> video-subtitler
-<span class="prompt">$ </span><span class="cmd">./setup.sh</span>
-<span class="comment">  → creates venv, installs deps, pre-downloads Whisper models</span>
-<span class="prompt">$ </span><span class="cmd">python3</span> app.py</code></pre>
+              <pre class="code-body"><code><span class="comment"># Mac / Linux</span>
+<span class="prompt">$ </span><span class="cmd">./start.sh</span>
+
+<span class="comment"># Windows</span>
+<span class="prompt">></span> <span class="cmd">start.bat</span>
+
+<span class="comment">  → installs prerequisites, sets up environment,</span>
+<span class="comment">  → downloads AI model, opens browser — done!</span></code></pre>
               <div class="code-note">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
                 </svg>
-                <span>Opens the web UI at <code>http://127.0.0.1:7860</code></span>
+                <span>Browser opens to <code>http://127.0.0.1:7860</code></span>
               </div>
             </div>
           </div>
