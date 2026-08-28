@@ -810,7 +810,7 @@
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
           </svg>
         </button>
-        <a href="demo.html" class="nav-open-app">
+        <a href="demo" class="nav-open-app">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M7 17 17 7"/>
             <path d="M7 7h10v10"/>
@@ -836,7 +836,7 @@
           Auto-generate and embed subtitles for MP4 videos using GPU-accelerated Whisper. Soft tracks for toggling, hardcoded for socials, full font control — and your video never leaves your machine.
         </p>
         <div class="hero-ctas reveal">
-          <a href="demo.html" class="btn btn-primary">
+          <a href="demo" class="btn btn-primary">
             Demo
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
@@ -1080,7 +1080,7 @@
           <div style="position:relative">
             <h2 style="font-size:32px;font-weight:700;letter-spacing:-0.02em;margin-bottom:12px;color:var(--text)">Ready to subtitle something?</h2>
             <p style="color:var(--text-secondary);max-width:480px;margin:0 auto 28px;font-size:16px">Try the interactive demo — or run locally for full subtitle generation. Your files never leave your machine.</p>
-            <a href="demo.html" class="btn btn-primary" style="font-size:16px;padding:14px 24px">
+            <a href="demo" class="btn btn-primary" style="font-size:16px;padding:14px 24px">
               Try the Demo
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
@@ -1250,15 +1250,15 @@
       // =========================================================
       // Context-aware demo links — local vs GitHub Pages
       // =========================================================
-      // HTML defaults to demo.html (works on GitHub Pages without JS).
-      // When running locally (localhost / 127.0.0.1), rewrite demo.html
+      // HTML defaults to "demo" (extensionless, works on GitHub Pages).
+      // When running locally (localhost / 127.0.0.1), rewrite "demo"
       // links to /app so they point to the live FastAPI backend.
       (function () {
         var isLocal = ['localhost', '127.0.0.1', '::1'].indexOf(location.hostname) !== -1;
-        if (!isLocal) return; // GitHub Pages — leave demo.html links as-is
+        if (!isLocal) return; // GitHub Pages — leave "demo" links as-is
 
-        // Rewrite all href="demo.html" links → /app
-        var demoLinks = document.querySelectorAll('a[href="demo.html"]');
+        // Rewrite all href="demo" links → /app
+        var demoLinks = document.querySelectorAll('a[href="demo"]');
         for (var i = 0; i < demoLinks.length; i++) {
           demoLinks[i].setAttribute('href', '/app');
           // Update visible labels
