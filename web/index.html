@@ -1020,7 +1020,7 @@
     <!-- =========================================================
          Quick start
          ========================================================= -->
-    <section class="section">
+    <section class="section" id="quick-start">
       <div class="container">
         <div class="section-header reveal">
           <span class="eyebrow">Quick start</span>
@@ -1246,6 +1246,28 @@
         try { document.execCommand('copy'); } catch (e) {}
         document.body.removeChild(ta);
       }
+
+      // =========================================================
+      // Context-aware /app links — local vs GitHub Pages
+      // =========================================================
+      // When running locally (localhost / 127.0.0.1), /app links
+      // point to the live FastAPI app. On GitHub Pages, there's no
+      // backend, so rewrite them to the #quick-start section instead.
+      (function () {
+        var isLocal = ['localhost', '127.0.0.1', '::1'].indexOf(location.hostname) !== -1;
+        if (isLocal) return; // local server serves /app — leave links as-is
+
+        // Rewrite all href="/app" links → #quick-start
+        var appLinks = document.querySelectorAll('a[href="/app"]');
+        for (var i = 0; i < appLinks.length; i++) {
+          appLinks[i].setAttribute('href', '#quick-start');
+          // Update visible label for the nav button
+          var label = appLinks[i].querySelector('span');
+          if (label && (label.textContent === 'Open App' || label.textContent === 'Get Started' || label.textContent === 'Open the App')) {
+            label.textContent = 'Quick Start';
+          }
+        }
+      })();
     })();
   </script>
 </body>
