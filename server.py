@@ -53,7 +53,7 @@ def _cuda_available() -> bool:
 
 HAS_CUDA = _cuda_available()
 
-APP_MODEL = os.environ.get("WHISPER_MODEL", "small")
+APP_MODEL = os.environ.get("WHISPER_MODEL", MODEL_SIZE)
 APP_DEVICE = os.environ.get("WHISPER_DEVICE", "cuda" if HAS_CUDA else "cpu")
 APP_COMPUTE_TYPE = os.environ.get(
     "WHISPER_COMPUTE_TYPE", COMPUTE_TYPE if HAS_CUDA else "int8"

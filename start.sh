@@ -168,13 +168,11 @@ if [ "$NEEDS_INSTALL" = true ]; then
 fi
 
 # ── 5. Pre-download default Whisper model (if not cached) ─────────────────────
-# We only download the "small" model (~500 MB) as default.
-# Users can download larger models from the web UI settings.
+# Download large-v3 — the default model for both CLI and web UI.
 MODEL_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/huggingface/hub"
-if [ ! -d "$MODEL_CACHE_DIR" ] || ! find "$MODEL_CACHE_DIR" -path "*/models--Systran--faster-whisper-small" -maxdepth 2 -print -quit 2>/dev/null | grep -q .; then
+if [ ! -d "$MODEL_CACHE_DIR" ] || ! find "$MODEL_CACHE_DIR" -path "*/models--Systran--faster-whisper-large-v3" -maxdepth 2 -print -quit 2>/dev/null | grep -q .; then
     echo ""
-    echo "${BOLD}Downloading default Whisper model (small, ~500 MB)…${RESET}"
-    echo "  (Larger models can be downloaded later from the web UI.)"
+    echo "${BOLD}Downloading Whisper model (large-v3, ~3 GB)…${RESET}"
     echo ""
     if [ -n "${HF_TOKEN:-}" ]; then
         info "Using HF_TOKEN for faster download."
@@ -183,9 +181,9 @@ if [ ! -d "$MODEL_CACHE_DIR" ] || ! find "$MODEL_CACHE_DIR" -path "*/models--Sys
 import os
 os.environ.pop('HF_HUB_ENABLE_HF_TRANSFER', None)
 from faster_whisper import WhisperModel
-print('  Downloading small model…', flush=True)
-WhisperModel('small', device='cpu', compute_type='int8')
-print('  ✓ small model cached')
+print('  Downloading large-v3 model…', flush=True)
+WhisperModel('large-v3', device='cpu', compute_type='int8')
+print('  ✓ large-v3 model cached')
 "
     echo ""
 fi
