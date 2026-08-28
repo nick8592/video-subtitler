@@ -21,7 +21,27 @@ Auto-generate and embed subtitles for `.mp4` videos — 100% local, no uploads, 
 
 ## Quick Start
 
-### One-Click Launch (recommended)
+### Option A — No terminal needed (easiest)
+
+1. Go to [github.com/nick8592/video-subtitler](https://github.com/nick8592/video-subtitler)
+2. Click the green **Code** button → **Download ZIP**
+3. Extract the ZIP file
+4. **Windows:** double-click `start.bat`
+   **Mac:** double-click `start.command`
+   **Linux:** open a terminal in the extracted folder and run `./start.sh`
+
+The launcher will check for required tools (ffmpeg, Python), offer to install anything missing, download the AI model (~3 GB) on first run, and open the web UI in your browser.
+
+> **Mac users:** If double-clicking `start.command` says "cannot be opened," right-click it → **Open** → click **Open** again. This is a one-time macOS security step.
+
+### Option B — One-Click Launch (terminal)
+
+```bash
+git clone https://github.com/nick8592/video-subtitler.git
+cd video-subtitler
+```
+
+Then run the launcher:
 
 **Mac / Linux:**
 ```bash
@@ -39,9 +59,7 @@ That's it. The script will:
 3. Download the default AI model (~3 GB)
 4. Start the web UI and open it in your browser
 
-### Manual Setup
-
-If you prefer to set things up yourself:
+### Option C — Manual Setup (developers)
 
 ```bash
 git clone https://github.com/nick8592/video-subtitler.git
@@ -53,7 +71,7 @@ python3 server.py
 
 ### What You Need
 
-- **ffmpeg** — free video processing tool. Install: `apt install ffmpeg` (Linux) or `brew install ffmpeg` (Mac) or [download for Windows](https://www.gyan.dev/ffmpeg/builds/)
+- **ffmpeg** — free video processing tool. The launcher can install it automatically, or install it yourself: `apt install ffmpeg` (Linux) / `brew install ffmpeg` (Mac) / `winget install ffmpeg` (Windows)
 - **Python 3.10+** — [download here](https://www.python.org/downloads/) (Windows: check "Add to PATH")
 - **NVIDIA GPU** — optional but makes subtitle generation much faster. Works without one.
 
@@ -118,8 +136,8 @@ https://github.com/user-attachments/assets/d996cfec-f958-4aba-aea8-9e8952b5877c
 
 ```srt
 1
-00:00:01,200 --> 00:00:05,200
-yeah the cloud is climbing through the hill
+00:00:01,200 --> 00:00:04,200
+Yeah, the cloud is climbing through the hill.
 ```
 
 ## How it works
@@ -170,6 +188,7 @@ Font styling options (always-visible mode only):
 | `--border-style` | `1` | `1` = outline + shadow, `3` = opaque box |
 | `--alignment` | `2` | Position: 1–3 bottom, 5–7 top, 9–11 mid |
 | `--margin-v` | `20` | Vertical margin from edge in pixels |
+| `--margin-h` | `10` | Horizontal margin from edge in pixels |
 
 ## Acknowledgments
 
