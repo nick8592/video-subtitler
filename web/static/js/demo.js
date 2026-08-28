@@ -1,10 +1,12 @@
 'use strict';
 
 // ── Demo state ──────────────────────────────────────────────────────────────
-let currentMode = 'hardcode';
+let currentMode = 'Toggleable (soft subtitle)';
+let currentJobId = null; // simulated
 
-const MODE_SOFT = 'soft';
-const MODE_HARDCODE = 'hardcode';
+// Mode strings MUST match app.js / server.py exactly.
+const MODE_SOFT = 'Toggleable (soft subtitle)';
+const MODE_HARDCODE = 'Always visible (burned in)';
 
 const SLIDER_PAIRS = [
   ['font-size-slider', 'font-size-value'],
@@ -35,10 +37,12 @@ document.addEventListener('DOMContentLoaded', () => {
   setupModeToggle();
   setupSliders();
   setupAccordion();
+  setupAdvancedSettings();
   setupColorPicker();
   setupBannerDismiss();
   setupButtons();
   setupSrtEditor();
+  setupLivePreview();
   prefillDemoState();
 });
 
@@ -93,7 +97,7 @@ function setupModeToggle() {
 
   softBtn.addEventListener('click', () => apply(MODE_SOFT));
   hardBtn.addEventListener('click', () => apply(MODE_HARDCODE));
-  apply(MODE_HARDCODE);
+  apply(MODE_SOFT); // default per spec, matching app.js
 }
 
 // ── Sliders ─────────────────────────────────────────────────────────────────
@@ -114,6 +118,17 @@ function setupSliders() {
 function setupAccordion() {
   const toggle = document.getElementById('font-accordion-toggle');
   const section = document.getElementById('font-section');
+  if (!toggle || !section) return;
+  toggle.addEventListener('click', () => {
+    section.classList.toggle('open');
+    const expanded = section.classList.contains('open');
+    toggle.setAttribute('aria-expanded', String(expanded));
+  });
+}
+
+function setupAdvancedSettings() {
+  const toggle = document.getElementById('advanced-toggle');
+  const section = document.getElementById('advanced-section');
   if (!toggle || !section) return;
   toggle.addEventListener('click', () => {
     section.classList.toggle('open');
@@ -161,11 +176,6 @@ function setupButtons() {
   wire('download-srt-btn', onDownloadSrt);
   wire('download-video-btn', onDownloadVideo);
 
-  for (const id of ['font-name-select', 'border-style-select', 'alignment-select']) {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener('change', liveUpdateFontPreview);
-  }
-
   // Upload zone click handler (demo: no real upload, but keep interactivity)
   const zone = document.getElementById('video-upload-zone');
   const fileInput = document.getElementById('video-file-input');
@@ -191,7 +201,6 @@ function setupButtons() {
       const filled = document.getElementById('upload-filled');
       if (filled) filled.setAttribute('hidden', '');
       if (empty) empty.removeAttribute('hidden');
-      // Re-enable upload zone click for real file selection (still shows toast)
     });
   }
 }
@@ -217,6 +226,9 @@ function updateSrtStats() {
 
 // ── Pre-fill demo state ─────────────────────────────────────────────────────
 function prefillDemoState() {
+  // Simulate a completed job
+  currentJobId = 'demo-job';
+
   // Upload zone: show "filled" state
   const empty = document.getElementById('upload-empty');
   const filled = document.getElementById('upload-filled');
@@ -237,7 +249,13 @@ function prefillDemoState() {
   // All action buttons enabled
   enableActionButtons();
 
-  // Font preview placeholder shown (like "already previewed" state)
+  // Enable generate & preview buttons (disabled by default in HTML)
+  const genBtn = document.getElementById('generate-btn');
+  if (genBtn) genBtn.disabled = false;
+  const prevBtn = document.getElementById('preview-btn');
+  if (prevBtn) prevBtn.disabled = false;
+
+  // Font preview placeholder shown
   const liveFontPreview = document.getElementById('live-font-preview');
   if (liveFontPreview) {
     updateFontPreviewStyle();
@@ -251,17 +269,33 @@ function enableActionButtons() {
   }
 }
 
-// ── Font Preview ────────────────────────────────────────────────────────────
+// ── Live font preview ────────────────────────────────────────────────────────
+function setupLivePreview() {
+  for (const id of ['font-name-select', 'border-style-select', 'alignment-select']) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', liveUpdateFontPreview);
+  }
+  liveUpdateFontPreview();
+}
+
 function liveUpdateFontPreview() {
   const livePreview = document.getElementById('live-font-preview');
+  const renderedPreview = document.getElementById('rendered-preview');
+  const hint = document.getElementById('live-preview-hint');
+  if (renderedPreview && !renderedPreview.hasAttribute('hidden')) {
+    renderedPreview.setAttribute('hidden', '');
+  }
   if (livePreview) {
     livePreview.style.display = '';
+  }
+  if (hint) {
+    hint.textContent = 'Live approximation — click "Render Frame" for exact ffmpeg output';
   }
   updateFontPreviewStyle();
 }
 
 function onPreviewFont() {
-  showToast('Rendered preview is not available in demo mode');
+  showToast('Rendered frame preview is not available in demo mode');
 }
 
 function updateFontPreviewStyle() {
@@ -446,7 +480,8 @@ function updateSoftNotice() {
   const notice = document.getElementById('soft-notice');
   if (!notice) return;
   const isSoft = currentMode === MODE_SOFT;
-  if (isSoft) {
+  const hasResult = !!currentJobId;
+  if (isSoft && hasResult) {
     notice.removeAttribute('hidden');
     notice.style.display = '';
   } else {
