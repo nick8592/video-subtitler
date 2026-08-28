@@ -76,7 +76,6 @@ function setupModeToggle() {
   const softBtn = document.getElementById('mode-soft');
   const hardBtn = document.getElementById('mode-hardcode');
   const fontSection = document.getElementById('font-section');
-  const previewBlock = document.getElementById('preview-block');
   if (!softBtn || !hardBtn) return;
 
   const apply = (mode) => {
@@ -87,13 +86,12 @@ function setupModeToggle() {
     softBtn.setAttribute('aria-checked', String(isSoft));
     hardBtn.setAttribute('aria-checked', String(!isSoft));
     if (fontSection) fontSection.style.display = isSoft ? 'none' : '';
-    if (previewBlock) previewBlock.style.display = isSoft ? 'none' : '';
+    if (!isSoft) liveUpdateFontPreview();
     updateSoftNotice();
   };
 
   softBtn.addEventListener('click', () => apply(MODE_SOFT));
   hardBtn.addEventListener('click', () => apply(MODE_HARDCODE));
-  // Default to hardcode for demo
   apply(MODE_HARDCODE);
 }
 
@@ -239,11 +237,8 @@ function prefillDemoState() {
   enableActionButtons();
 
   // Font preview placeholder shown (like "already previewed" state)
-  const previewEmpty = document.getElementById('preview-empty');
-  const demoFontPreview = document.getElementById('demo-font-preview');
-  if (previewEmpty) previewEmpty.setAttribute('hidden', '');
-  if (demoFontPreview) {
-    demoFontPreview.removeAttribute('hidden');
+  const liveFontPreview = document.getElementById('live-font-preview');
+  if (liveFontPreview) {
     updateFontPreviewStyle();
   }
 }
@@ -257,30 +252,39 @@ function enableActionButtons() {
 
 // ── Font Preview ────────────────────────────────────────────────────────────
 function liveUpdateFontPreview() {
-  const demoFontPreview = document.getElementById('demo-font-preview');
-  if (demoFontPreview && !demoFontPreview.hasAttribute('hidden')) {
-    updateFontPreviewStyle();
+  const livePreview = document.getElementById('live-font-preview');
+  const renderedPreview = document.getElementById('rendered-preview');
+  const hint = document.getElementById('live-preview-hint');
+  if (renderedPreview && !renderedPreview.hasAttribute('hidden')) {
+    renderedPreview.setAttribute('hidden', '');
   }
+  if (livePreview) {
+    livePreview.style.display = '';
+  }
+  if (hint) {
+    hint.textContent = 'Live approximation — click "Render Frame" for exact ffmpeg output';
+  }
+  updateFontPreviewStyle();
 }
 
 function onPreviewFont() {
-  const previewEmpty = document.getElementById('preview-empty');
-  const previewImg = document.getElementById('preview-image');
-  const demoFontPreview = document.getElementById('demo-font-preview');
+  const renderedPreview = document.getElementById('rendered-preview');
+  const livePreview = document.getElementById('live-font-preview');
+  const hint = document.getElementById('live-preview-hint');
 
-  // Hide empty state and real image
-  if (previewEmpty) previewEmpty.setAttribute('hidden', '');
-  if (previewImg) previewImg.setAttribute('hidden', '');
-
-  // Show demo font preview
-  if (demoFontPreview) {
-    demoFontPreview.removeAttribute('hidden');
-    updateFontPreviewStyle();
+  if (renderedPreview) {
+    renderedPreview.removeAttribute('hidden');
+  }
+  if (livePreview) {
+    livePreview.style.display = 'none';
+  }
+  if (hint) {
+    hint.textContent = 'Exact ffmpeg render — adjust controls to return to live preview';
   }
 }
 
 function updateFontPreviewStyle() {
-  const textEl = document.getElementById('demo-font-preview-text');
+  const textEl = document.getElementById('live-font-preview-text');
   if (!textEl) return;
 
   const fontName = document.getElementById('font-name-select')?.value || 'Literata';
@@ -296,7 +300,6 @@ function updateFontPreviewStyle() {
   textEl.style.fontSize = `${fontSize}px`;
   textEl.style.color = fontColor;
 
-  // Alignment: SSA values 1-3 bottom, 5-7 top, 9-11 mid; left/center/right
   const alignMap = { '1': 'left', '2': 'center', '3': 'right', '5': 'left', '6': 'center', '7': 'right', '9': 'left', '10': 'center', '11': 'right' };
   const vAlignMap = { '1': 'flex-end', '2': 'flex-end', '3': 'flex-end', '5': 'flex-start', '6': 'flex-start', '7': 'flex-start', '9': 'center', '10': 'center', '11': 'center' };
   const justifyMap = { '1': 'flex-start', '2': 'center', '3': 'flex-end', '5': 'flex-start', '6': 'center', '7': 'flex-end', '9': 'flex-start', '10': 'center', '11': 'flex-end' };
@@ -320,14 +323,12 @@ function updateFontPreviewStyle() {
     textEl.style.paintOrder = '';
   }
 
-  // Shadow
   if (shadow > 0) {
     textEl.style.textShadow = `${shadow}px ${shadow}px 2px rgba(0,0,0,0.7)`;
   } else {
     textEl.style.textShadow = '';
   }
 
-  // Border style 3 = opaque box background
   if (borderStyle === '3') {
     textEl.style.backgroundColor = 'rgba(0,0,0,0.75)';
     textEl.style.padding = '4px 12px';

@@ -1105,11 +1105,6 @@ h3, .h3 {
   justify-content: center;
 }
 
-.preview-frame {
-  aspect-ratio: auto;
-  min-height: 200px;
-}
-
 .video-frame video,
 .preview-frame img {
   width: 100%;
@@ -1118,8 +1113,7 @@ h3, .h3 {
   background: #000;
 }
 
-.video-empty,
-.preview-empty {
+.video-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1130,8 +1124,7 @@ h3, .h3 {
   text-align: center;
 }
 
-.video-empty-icon,
-.preview-empty-icon {
+.video-empty-icon {
   width: 44px;
   height: 44px;
   display: flex;
@@ -1143,11 +1136,70 @@ h3, .h3 {
   color: var(--color-text-tertiary);
 }
 
-.video-empty-text,
-.preview-empty-text {
+.video-empty-text {
   font-size: 13px;
   line-height: 1.5;
   max-width: 280px;
+}
+
+/* ── Live font preview (inline inside accordion) ──────────────────────────── */
+.live-font-preview-wrapper {
+  margin-bottom: 14px;
+}
+
+.live-font-preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 0 24px 0;
+}
+
+.live-font-preview-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.85;
+}
+
+.live-font-preview-text {
+  line-height: 1.4;
+  text-align: center;
+  word-break: break-word;
+  position: relative;
+  z-index: 1;
+}
+
+.rendered-preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.rendered-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.live-font-preview-hint {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin-top: 6px;
+  text-align: center;
 }
 
 .video-meta {
@@ -2466,7 +2518,6 @@ body {
 }
 
 /* App empty state icons use 12px radius */
-.video-empty-icon,
-.preview-empty-icon {
+.video-empty-icon {
   border-radius: 12px;
 }
