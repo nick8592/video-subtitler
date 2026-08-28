@@ -161,20 +161,6 @@
       z-index: 1;
     }
 
-    /* Demo inline message (for download video fallback) */
-    .demo-inline-msg {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 14px;
-      border-radius: 8px;
-      font-size: 13px;
-      color: var(--text-secondary, #9ca3af);
-      background: var(--surface, rgba(255,255,255,0.04));
-      border: 1px solid var(--border, rgba(255,255,255,0.08));
-    }
-    .demo-inline-msg svg { flex-shrink: 0; color: var(--accent, #10b981); }
-
     /* Demo toast notification */
     .demo-toast {
       position: fixed;
@@ -701,15 +687,6 @@
           <p id="error-text"></p>
         </div>
 
-        <!-- Demo inline message (for download video fallback) -->
-        <div class="demo-inline-msg" id="demo-inline-msg" hidden role="status">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="16" x2="12" y2="12"/>
-            <line x1="12" y1="8" x2="12.01" y2="8"/>
-          </svg>
-          <span>Video download requires the real app running locally.</span>
-        </div>
       </section>
     </div>
   </main>
@@ -719,6 +696,6 @@
     <span id="demo-toast-text"></span>
   </div>
 
-  <script src="static/js/demo.js?v=2"></script>
+  <script src="static/js/demo.js?v=3"></script>
 </body>
 </html>
