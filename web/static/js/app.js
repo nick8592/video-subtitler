@@ -753,7 +753,8 @@ function onDownloadSrt() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'subtitles.srt';
+  const stem = currentVideoFile ? currentVideoFile.name.replace(/\.[^.]+$/, '') : 'video';
+  a.download = `${stem}.srt`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -765,7 +766,8 @@ function onDownloadVideo() {
   if (!currentJobId) { showError('No video to download. Generate subtitles first.'); return; }
   const a = document.createElement('a');
   a.href = `/api/files/${currentJobId}/video`;
-  a.download = 'subtitled.mp4';
+  const stem = currentVideoFile ? currentVideoFile.name.replace(/\.[^.]+$/, '') : 'video';
+  a.download = `${stem}_subtitled.mp4`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
