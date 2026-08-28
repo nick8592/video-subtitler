@@ -254,34 +254,14 @@ function enableActionButtons() {
 // ── Font Preview ────────────────────────────────────────────────────────────
 function liveUpdateFontPreview() {
   const livePreview = document.getElementById('live-font-preview');
-  const renderedPreview = document.getElementById('rendered-preview');
-  const hint = document.getElementById('live-preview-hint');
-  if (renderedPreview && !renderedPreview.hasAttribute('hidden')) {
-    renderedPreview.setAttribute('hidden', '');
-  }
   if (livePreview) {
     livePreview.style.display = '';
-  }
-  if (hint) {
-    hint.textContent = 'Live approximation — click "Render Frame" for exact ffmpeg output';
   }
   updateFontPreviewStyle();
 }
 
 function onPreviewFont() {
-  const renderedPreview = document.getElementById('rendered-preview');
-  const livePreview = document.getElementById('live-font-preview');
-  const hint = document.getElementById('live-preview-hint');
-
-  if (renderedPreview) {
-    renderedPreview.removeAttribute('hidden');
-  }
-  if (livePreview) {
-    livePreview.style.display = 'none';
-  }
-  if (hint) {
-    hint.textContent = 'Exact ffmpeg render — adjust controls to return to live preview';
-  }
+  showToast('Rendered preview is not available in demo mode');
 }
 
 function updateFontPreviewStyle() {
