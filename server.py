@@ -189,6 +189,7 @@ def _web_route(path_name: str):
 
 app.get("/", include_in_schema=False)(_web_route("index.html"))
 app.get("/app", include_in_schema=False)(_web_route("app.html"))
+app.get("/demo", include_in_schema=False)(_web_route("demo.html"))
 
 
 @app.get("/app.html", include_in_schema=False)

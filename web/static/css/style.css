@@ -44,8 +44,8 @@
   /* Radii */
   --radius-sm: 6px;
   --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
 
   /* Shadows */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -62,8 +62,33 @@
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Layout */
-  --max-w: 1200px;
+  --max-w: 1400px;
   --nav-h: 64px;
+
+  /* --- Short aliases (app.html compat) --- */
+  --bg: var(--color-bg);
+  --surface: var(--color-surface);
+  --surface-2: var(--color-surface-hover);
+  --surface-3: #202023;
+  --border: var(--color-border);
+  --border-strong: var(--color-border-hover);
+  --text: var(--color-text);
+  --text-secondary: var(--color-text-secondary);
+  --text-tertiary: var(--color-text-tertiary);
+  --accent: var(--color-accent);
+  --accent-hover: var(--color-accent-hover);
+  --accent-soft: var(--color-accent-muted);
+  --accent-glow: var(--color-accent-glow);
+  --code-bg: var(--color-code-bg);
+  --code-border: var(--color-code-border);
+  --selection: rgba(16, 185, 129, 0.35);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.12);
+  --danger-border: rgba(248, 113, 113, 0.3);
+  --shadow-soft: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 40px -12px rgba(0, 0, 0, 0.6);
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 28px -16px rgba(0, 0, 0, 0.5);
+  --noise-opacity: 0.04;
+  --radius: 12px;
 }
 
 [data-theme="light"] {
@@ -95,6 +120,16 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  /* Short alias overrides for light theme */
+  --surface-3: #ececec;
+  --selection: rgba(5, 150, 105, 0.25);
+  --shadow-soft: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 12px 40px -16px rgba(0, 0, 0, 0.12);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 28px -16px rgba(0, 0, 0, 0.08);
+  --noise-opacity: 0.025;
+  --danger: #dc2626;
+  --danger-soft: rgba(220, 38, 38, 0.06);
+  --danger-border: rgba(220, 38, 38, 0.2);
 }
 
 
@@ -217,7 +252,7 @@ h3, .h3 {
 .bg-mesh {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: -2;
   pointer-events: none;
   overflow: hidden;
 }
@@ -2124,4 +2159,314 @@ textarea:focus-visible {
 
   .upload-zone-empty { padding: 28px 16px; }
   .upload-zone-icon { width: 44px; height: 44px; }
+}
+
+
+/* =========================================================
+    32. App Page Styles
+    ========================================================= */
+
+/* Background noise texture overlay */
+.bg-noise {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: var(--noise-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' /%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+
+/* App page body overrides */
+.app-main {
+  padding-top: calc(var(--nav-h) + 32px);
+  padding-bottom: 64px;
+  min-height: 100vh;
+}
+
+body {
+  font-size: 15px;
+  line-height: 1.55;
+  transition: background 0.3s var(--ease), color 0.3s var(--ease);
+}
+
+.app-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+/* Panel radial gradient overlay */
+.panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(circle at top right, var(--accent-soft), transparent 60%);
+  opacity: 0.35;
+}
+[data-theme="light"] .panel::before { opacity: 0.5; }
+
+.panel > * { position: relative; z-index: 1; }
+
+/* Sticky results panel on desktop */
+@media (min-width: 961px) {
+  .results-panel {
+    position: sticky;
+    top: calc(var(--nav-h) + 16px);
+  }
+}
+
+/* Video progress circle overlay */
+.video-progress-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-radius: inherit;
+  z-index: 5;
+  animation: overlay-in 0.3s var(--ease);
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.progress-circle-svg {
+  width: 100px;
+  height: 100px;
+  transform: rotate(-90deg);
+}
+
+.progress-circle-track {
+  fill: none;
+  stroke: var(--surface-3);
+  stroke-width: 8;
+}
+
+.progress-circle-fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 326.73;
+  stroke-dashoffset: 326.73;
+  transition: stroke-dashoffset 0.4s var(--ease);
+  filter: drop-shadow(0 0 6px var(--accent-glow));
+}
+
+.progress-circle-text {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.progress-circle-pct {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.progress-circle-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Soft subtitle notice */
+.soft-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--accent-soft) 60%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  animation: notice-in 0.3s var(--ease);
+}
+
+@keyframes notice-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.soft-notice svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--accent);
+}
+
+/* Strong hidden utility (app.html uses !important) */
+[hidden] { display: none !important; }
+
+/* Selection with app-compatible variable */
+::selection {
+  background: var(--selection);
+  color: var(--text);
+}
+
+/* App grid responsive */
+@media (max-width: 960px) {
+  .app-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* Grid helpers at small breakpoint */
+@media (max-width: 520px) {
+  .grid-2, .grid-3 {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+/* Actions row stack at smallest */
+@media (max-width: 480px) {
+  .actions-row { grid-template-columns: 1fr; }
+}
+
+/* =========================================================
+    33. App Value Overrides
+    ========================================================= */
+
+/* App uses slightly larger buttons */
+.btn {
+  padding: 11px 18px;
+  border-radius: 10px;
+}
+
+.btn-lg {
+  border-radius: 12px;
+}
+
+/* App mode toggle has more gap and different radius */
+.mode-toggle {
+  gap: 8px;
+  border-radius: 12px;
+}
+
+.mode-btn.active {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), 0 0 0 1px var(--accent-soft);
+}
+
+.mode-btn-sub {
+  font-weight: 400;
+}
+
+/* App panel uses card shadow instead of sm */
+.panel {
+  box-shadow: var(--shadow-card);
+}
+
+/* App error display has no left border accent */
+.error-display {
+  background: var(--danger-soft);
+  border-color: var(--danger-border);
+  border-left: 1px solid var(--danger-border);
+  color: var(--danger);
+}
+
+.error-display p { color: var(--danger); }
+
+/* App btn-text danger uses short aliases */
+.btn-text:hover {
+  color: var(--danger);
+  border-color: var(--danger-border);
+  background: var(--danger-soft);
+}
+
+/* App srt editor wrap radius */
+.srt-editor-wrap {
+  border-radius: 12px;
+}
+
+/* App form controls use 10px radius instead of 8px */
+.select {
+  border-radius: 10px;
+}
+
+.video-player {
+  border-radius: 10px;
+}
+
+.color-picker,
+.color-hex {
+  border-radius: 10px;
+}
+
+.upload-zone {
+  border-radius: 14px;
+}
+
+.upload-zone-icon {
+  border-radius: 14px;
+}
+
+/* App slider track uses surface-3 */
+.slider::-webkit-slider-runnable-track {
+  background: var(--surface-3);
+}
+
+.slider::-moz-range-track {
+  background: var(--surface-3);
+}
+
+.accordion {
+  border-radius: 12px;
+}
+
+/* App nav-link uses 8px radius */
+.nav-link {
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.nav-icon-btn {
+  border-radius: 8px;
+}
+
+.nav-brand-mark {
+  border-radius: 8px;
+}
+
+/* App bg-mesh uses lower opacity */
+.bg-mesh::before,
+.bg-mesh::after {
+  opacity: 0.3;
+}
+
+[data-theme="light"] .bg-mesh::before { opacity: 0.16; }
+[data-theme="light"] .bg-mesh::after { opacity: 0.12; }
+
+/* App video/preview frames use 12px radius */
+.video-frame,
+.preview-frame {
+  border-radius: 12px;
+}
+
+/* App empty state icons use 12px radius */
+.video-empty-icon,
+.preview-empty-icon {
+  border-radius: 12px;
 }
