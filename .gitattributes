@@ -1,0 +1,4 @@
+# Binary assets — skip text diffing and delta compression
+*.mp4 binary
+*.png binary
+*.srt binary
