@@ -37,6 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
   setupVideoUpload();
   setupModeToggle();
   setupSliders();
+  setupColorPicker();
+  setupLivePreview();
   setupButtons();
   setupAccordion();
   setupSrtEditor();
@@ -113,6 +115,7 @@ async function loadFonts() {
     }
     if (fonts.includes('Literata')) sel.value = 'Literata';
     else if (fonts.length) sel.value = fonts[0];
+    liveUpdateFontPreview();
   } catch (err) {
     showError(`Failed to load fonts: ${err.message}`);
   }
@@ -190,7 +193,6 @@ function setupModeToggle() {
   const softBtn = document.getElementById('mode-soft');
   const hardBtn = document.getElementById('mode-hardcode');
   const fontSection = document.getElementById('font-section');
-  const previewImg = document.getElementById('preview-image');
   if (!softBtn || !hardBtn) return;
 
   const apply = (mode) => {
@@ -201,7 +203,7 @@ function setupModeToggle() {
     softBtn.setAttribute('aria-pressed', String(isSoft));
     hardBtn.setAttribute('aria-pressed', String(!isSoft));
     if (fontSection) fontSection.style.display = isSoft ? 'none' : '';
-    if (previewImg) previewImg.style.display = isSoft ? 'none' : '';
+    if (!isSoft) liveUpdateFontPreview();
     updateSoftNotice();
   };
 
@@ -217,7 +219,109 @@ function setupSliders() {
     const valueEl = document.getElementById(valueId);
     if (!slider || !valueEl) continue;
     valueEl.textContent = slider.value;
-    slider.addEventListener('input', () => { valueEl.textContent = slider.value; });
+    slider.addEventListener('input', () => {
+      valueEl.textContent = slider.value;
+      liveUpdateFontPreview();
+    });
+  }
+}
+
+// ── Color picker sync ───────────────────────────────────────────────────────
+function setupColorPicker() {
+  const picker = document.getElementById('font-color-picker');
+  const text = document.getElementById('font-color-text');
+  if (!picker || !text) return;
+  picker.addEventListener('input', () => {
+    text.value = picker.value.toUpperCase();
+    liveUpdateFontPreview();
+  });
+  text.addEventListener('input', () => {
+    const v = text.value.trim();
+    if (/^#[0-9A-Fa-f]{6}$/.test(v)) picker.value = v;
+    liveUpdateFontPreview();
+  });
+}
+
+// ── Live font preview ───────────────────────────────────────────────────────
+function setupLivePreview() {
+  for (const id of ['font-name-select', 'border-style-select', 'alignment-select']) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', liveUpdateFontPreview);
+  }
+  liveUpdateFontPreview();
+}
+
+function liveUpdateFontPreview() {
+  const livePreview = document.getElementById('live-font-preview');
+  const renderedPreview = document.getElementById('rendered-preview');
+  const hint = document.getElementById('live-preview-hint');
+  if (renderedPreview && !renderedPreview.hasAttribute('hidden')) {
+    renderedPreview.setAttribute('hidden', '');
+  }
+  if (livePreview) {
+    livePreview.style.display = '';
+  }
+  if (hint) {
+    hint.textContent = 'Live approximation — click "Render Frame" for exact ffmpeg output';
+  }
+  updateFontPreviewStyle();
+}
+
+function updateFontPreviewStyle() {
+  const textEl = document.getElementById('live-font-preview-text');
+  if (!textEl) return;
+
+  const fontName = document.getElementById('font-name-select')?.value || 'Literata';
+  const fontSize = document.getElementById('font-size-slider')?.value || 12;
+  const fontColor = document.getElementById('font-color-picker')?.value || '#FFFFFF';
+  const outline = document.getElementById('outline-slider')?.value || 0;
+  const shadow = document.getElementById('shadow-slider')?.value || 0;
+  const borderStyle = document.getElementById('border-style-select')?.value || '1';
+  const alignment = document.getElementById('alignment-select')?.value || '2';
+  const marginV = document.getElementById('margin-v-slider')?.value || 20;
+
+  textEl.style.fontFamily = `"${fontName}", sans-serif`;
+  textEl.style.fontSize = `${fontSize}px`;
+  textEl.style.color = fontColor;
+
+  const alignMap = { '1': 'left', '2': 'center', '3': 'right', '5': 'left', '6': 'center', '7': 'right', '9': 'left', '10': 'center', '11': 'right' };
+  const vAlignMap = { '1': 'flex-end', '2': 'flex-end', '3': 'flex-end', '5': 'flex-start', '6': 'flex-start', '7': 'flex-start', '9': 'center', '10': 'center', '11': 'center' };
+  const justifyMap = { '1': 'flex-start', '2': 'center', '3': 'flex-end', '5': 'flex-start', '6': 'center', '7': 'flex-end', '9': 'flex-start', '10': 'center', '11': 'flex-end' };
+  const container = textEl.parentElement;
+  if (container) {
+    container.style.alignItems = vAlignMap[alignment] || 'flex-end';
+    container.style.justifyContent = justifyMap[alignment] || 'center';
+    container.style.paddingBottom = `${marginV}px`;
+    container.style.paddingTop = (alignment >= 5 && alignment <= 7) ? `${marginV}px` : '0';
+  }
+
+  textEl.style.textAlign = alignMap[alignment] || 'center';
+  textEl.style.width = (alignment === '2' || alignment === '6' || alignment === '10') ? '100%' : 'auto';
+  textEl.style.paddingLeft = (alignment === '1' || alignment === '5' || alignment === '9') ? '16px' : '';
+  textEl.style.paddingRight = (alignment === '3' || alignment === '7' || alignment === '11') ? '16px' : '';
+
+  if (outline > 0) {
+    textEl.style.webkitTextStroke = `${outline}px rgba(0,0,0,0.8)`;
+    textEl.style.paintOrder = 'stroke fill';
+  } else {
+    textEl.style.webkitTextStroke = '';
+    textEl.style.paintOrder = '';
+  }
+
+  if (shadow > 0) {
+    textEl.style.textShadow = `${shadow}px ${shadow}px 2px rgba(0,0,0,0.7)`;
+  } else {
+    textEl.style.textShadow = '';
+  }
+
+  if (borderStyle === '3') {
+    textEl.style.backgroundColor = 'rgba(0,0,0,0.75)';
+    textEl.style.padding = '4px 12px';
+    textEl.style.borderRadius = '2px';
+  } else {
+    textEl.style.backgroundColor = '';
+    textEl.style.padding = '';
+    textEl.style.borderRadius = '';
   }
 }
 
@@ -545,16 +649,21 @@ async function onPreview() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const blob = await res.blob();
     const img = document.getElementById('preview-image');
-    const empty = document.getElementById('preview-empty');
+    const renderedPreview = document.getElementById('rendered-preview');
+    const livePreview = document.getElementById('live-font-preview');
+    const hint = document.getElementById('live-preview-hint');
     if (img) {
       if (img.src && img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
       img.src = URL.createObjectURL(blob);
-      img.removeAttribute('hidden');
-      img.style.display = '';
     }
-    if (empty) {
-      empty.setAttribute('hidden', '');
-      empty.style.display = 'none';
+    if (renderedPreview) {
+      renderedPreview.removeAttribute('hidden');
+    }
+    if (livePreview) {
+      livePreview.style.display = 'none';
+    }
+    if (hint) {
+      hint.textContent = 'Exact ffmpeg render — adjust controls to return to live preview';
     }
   } catch (err) {
     showError(`Preview failed: ${err.message || err}`);
