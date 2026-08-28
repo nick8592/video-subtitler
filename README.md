@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/CUDA-GPU_Accelerated-76B900?style=flat-square&logo=nvidia&logoColor=white" alt="CUDA">
   <img src="https://img.shields.io/badge/faster--whisper-Powered-FF6F00?style=flat-square" alt="faster-whisper">
-  <a href="https://nick8592.github.io/video-subtitler/"><img src="https://img.shields.io/badge/landing-page-10b981?style=flat-square" alt="Landing Page"></a>
+  <a href="https://nick8592.github.io/video-subtitler/"><img src="https://img.shields.io/badge/project-page-10b981?style=flat-square" alt="Project Page"></a>
 
 </p>
 
