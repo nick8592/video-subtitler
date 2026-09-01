@@ -20,23 +20,53 @@ import sys
 import tempfile
 from pathlib import Path
 
+# Windows consoles default to cp1252/ANSI, which can't encode the "▶" progress
+# icon below and would crash the CLI; force UTF-8 output everywhere.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
 _all_sites = site.getsitepackages() + ([site.getusersitepackages()] if site.getusersitepackages() else [])
+# nvidia=cu12 wheels ship libs under site-packages/nvidia/<pkg>/ (lib on POSIX, bin on Windows).
+_cuda_subdirs = ("cublas/lib", "cuda_nvrtc/lib", "cudnn/lib") + (
+    ("cublas/bin", "cuda_nvrtc/bin", "cudnn/bin") if os.name == "nt" else ()
+)
 _cuda_paths = []
 for _sp in _all_sites:
     _nvidia_dir = os.path.join(_sp, "nvidia")
     if os.path.isdir(_nvidia_dir):
-        for _sub in ("cublas/lib", "cuda_nvrtc/lib", "cudnn/lib"):
+        for _sub in _cuda_subdirs:
             _p = os.path.join(_nvidia_dir, _sub)
             if os.path.isdir(_p):
                 _cuda_paths.append(_p)
-if _cuda_paths and "___CUDA_FIXED" not in os.environ:
-    os.environ["LD_LIBRARY_PATH"] = ":".join(_cuda_paths) + ":" + os.environ.get("LD_LIBRARY_PATH", "")
-    os.environ["___CUDA_FIXED"] = "1"
-    os.execv(sys.executable, [sys.executable] + sys.argv)
+if _cuda_paths:
+    if os.name == "nt":
+        # Windows: ctranslate2.dll needs cuBLAS/cuDNN DLLs at load; add their dirs
+        # to the DLL search path (LD_LIBRARY_PATH is a POSIX-only mechanism).
+        for _p in _cuda_paths:
+            os.add_dll_directory(_p)
+    elif "___CUDA_FIXED" not in os.environ:
+        os.environ["LD_LIBRARY_PATH"] = ":".join(_cuda_paths) + ":" + os.environ.get("LD_LIBRARY_PATH", "")
+        os.environ["___CUDA_FIXED"] = "1"
+        os.execv(sys.executable, [sys.executable] + sys.argv)
 
+def _cuda_available() -> bool:
+    """Return True if CTranslate2 can access a CUDA-capable GPU."""
+    try:
+        import ctranslate2
+        return ctranslate2.get_cuda_device_count() > 0
+    except Exception:
+        return False
+
+
+HAS_CUDA = _cuda_available()
 MODEL_SIZE = os.environ.get("WHISPER_MODEL", "large-v3")
-DEVICE = os.environ.get("WHISPER_DEVICE", "cuda")
-COMPUTE_TYPE = os.environ.get("WHISPER_COMPUTE_TYPE", "float16")
+# Auto-fallback: use CUDA when a GPU is present, otherwise run on CPU.
+# Works on macOS (no CUDA) and GPU-less machines without any env vars set.
+DEVICE = os.environ.get("WHISPER_DEVICE", "cuda" if HAS_CUDA else "cpu")
+COMPUTE_TYPE = os.environ.get("WHISPER_COMPUTE_TYPE", "float16" if HAS_CUDA else "int8")
 LANGUAGE = "auto"
 BEAM_SIZE = 5
 VAD_FILTER = True
@@ -380,8 +410,11 @@ def process_videos(
             if srt_path.exists():
                 print(f"  .srt already exists — skipping (delete to re-run)")
             else:
-                with tempfile.NamedTemporaryFile(suffix=".wav", delete=True) as tmp:
-                    audio_path = Path(tmp.name)
+                # Directory-based temp path: on Windows a held-open NamedTemporaryFile
+                # blocks ffmpeg from opening the .wav (Permission denied); Linux/macOS
+                # don't lock like this, so keep a path no process holds open.
+                with tempfile.TemporaryDirectory() as td:
+                    audio_path = Path(td) / "audio.wav"
                     extract_audio(video, audio_path)
                     transcribe_to_srt(audio_path, srt_path, model_size, language)
 

@@ -1,7 +1,8 @@
 faster-whisper>=1.0
-nvidia-cublas-cu12
-nvidia-cuda-nvrtc-cu12
-nvidia-cudnn-cu12
+# NVIDIA CUDA wheels exist only for Linux/Windows — skip on macOS (no CUDA).
+nvidia-cublas-cu12; sys_platform == "linux" or sys_platform == "win32"
+nvidia-cuda-nvrtc-cu12; sys_platform == "linux" or sys_platform == "win32"
+nvidia-cudnn-cu12; sys_platform == "linux" or sys_platform == "win32"
 
 # FastAPI web UI (server.py)
 fastapi>=0.110
