@@ -510,8 +510,8 @@ def _open_browser(url: str) -> None:
 if __name__ == "__main__":
     import uvicorn
 
-    HOST = "127.0.0.1"
+    # Local-only default; Docker sets VIDEO_SUBTITLER_HOST=0.0.0.0 for the published port.
+    HOST = os.environ.get("VIDEO_SUBTITLER_HOST", "127.0.0.1")
     PORT = 7860
-    url = f"http://{HOST}:{PORT}"
-    _open_browser(url)
+    _open_browser(f"http://127.0.0.1:{PORT}")
     uvicorn.run(app, host=HOST, port=PORT, log_level="info")
