@@ -30,6 +30,8 @@ For creators who want subtitles without uploading to cloud services or paying fo
 - [How it works](#how-it-works)
 - [Advanced Usage](#advanced-usage)
 - [Configuration](#configuration)
+- [Docker (optional)](#option-d--docker-optional-advanced)
+- [Troubleshooting](#troubleshooting)
 - [Acknowledgments](#acknowledgments)
 - [License](#license)
 
@@ -50,6 +52,8 @@ For creators who want subtitles without uploading to cloud services or paying fo
    **Linux:** open a terminal in the extracted folder and run `./start.sh`
 
 > **Mac users:** If double-clicking `start.command` says "cannot be opened," right-click it → **Open** → click **Open** again. This is a one-time macOS security step.
+
+> **Windows 11 with Smart App Control enabled?** The ZIP download may block `start.bat` with a "potentially unsafe file" warning. See [Troubleshooting](#troubleshooting) to unblock it.
 
 ### Option B — One-Click Launch (terminal)
 
@@ -87,6 +91,17 @@ python3 server.py
 ```
 
 All three options will: check for required tools (ffmpeg, Python) and offer to install anything missing, set up the Python environment, download the AI model (~3 GB) on first run, and start the web UI in your browser.
+
+### Option D — Docker (optional, advanced)
+
+Prefer a container? You can run the same app with Docker instead of installing Python locally. Container images run as **Linux** even on Windows/macOS, so this works on all three platforms — but note it runs **CPU-only** (no NVIDIA CUDA) unless you're on a Linux host with the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) installed.
+
+```bash
+docker build -t video-subtitler .
+docker run --rm -p 7860:7860 -v "$(pwd)/videos:/data" video-subtitler
+```
+
+Then open `http://127.0.0.1:7860` in your browser. The container is CPU-optimized (small Whisper model, `int8`) — use the native install above if you need GPU-accelerated transcription.
 
 ## Using the Web UI
 
@@ -184,8 +199,8 @@ Set via environment variables or edit the constants at the top of `add_subtitles
 | Setting | Env Variable | Default | Description |
 |---|---|---|---|
 | Model size | `WHISPER_MODEL` | `large-v3` | `tiny`, `base`, `small`, `medium`, or `large-v3` |
-| Device | `WHISPER_DEVICE` | `cuda` | `cuda` for GPU, `cpu` for CPU |
-| Quality | `WHISPER_COMPUTE_TYPE` | `float16` | `int8_float16` for less memory, `int8` for CPU |
+| Device | `WHISPER_DEVICE` | `auto` | `cuda` for GPU, `cpu` for CPU (auto = cuda if available, else cpu) |
+| Quality | `WHISPER_COMPUTE_TYPE` | `auto` | `float16` for GPU, `int8_float16` for less memory, `int8` for CPU (auto = float16 on GPU, int8 on CPU) |
 | Language | — | `auto` | Language code (e.g. `en`, `zh`) or `auto` to detect |
 | Skip silence | — | `True` | Ignores silent parts during transcription |
 
@@ -202,6 +217,24 @@ Font styling options (always-visible mode only):
 | Alignment | `--alignment` | `2` | Position: 1–3 bottom, 5–7 top, 9–11 mid |
 | Vertical margin | `--margin-v` | `20` | Vertical margin from edge in pixels |
 | Horizontal margin | `--margin-h` | `10` | Horizontal margin from edge in pixels |
+
+## Troubleshooting
+
+### Windows: "Smart App Control has blocked start.bat"
+
+On Windows 11 with **Smart App Control** enabled, files extracted from a browser-downloaded ZIP are stamped with *Mark of the Web* and unsigned `.bat` scripts may be blocked with a "potentially unsafe file" warning. This is a Windows security feature, not a bug in the scripts.
+
+**How to unblock (choose one):**
+
+1. **Easiest — unblock everything in the folder.** Open PowerShell in the extracted folder and run:
+   ```powershell
+   Get-ChildItem -Recurse -File | Unblock-File
+   ```
+   Then double-click `start.bat` again.
+2. **One file at a time:** right-click `start.bat` → **Properties** → tick **Unblock** → **OK**.
+3. **Avoid the ZIP entirely:** `git clone https://github.com/nick8592/video-subtitler.git` — files cloned via git are not marked as downloaded, so nothing gets blocked.
+
+> **⚠️ Don't disable Smart App Control to work around this.** On Windows 11 it can only be turned back on by resetting Windows. Unblocking the files (above) is the supported path.
 
 ## Acknowledgments
 
