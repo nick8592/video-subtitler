@@ -1,4 +1,8 @@
 faster-whisper>=1.0
+# faster-whisper decodes audio via av.open(..., metadata_errors="ignore"), an
+# argument PyAV 19.0.0 removed. Cap below 19 or transcription crashes with
+# "TypeError: open() got an unexpected keyword argument 'metadata_errors'".
+av>=11,<19
 # NVIDIA CUDA wheels exist only for Linux/Windows — skip on macOS (no CUDA).
 nvidia-cublas-cu12; sys_platform == "linux" or sys_platform == "win32"
 nvidia-cuda-nvrtc-cu12; sys_platform == "linux" or sys_platform == "win32"
