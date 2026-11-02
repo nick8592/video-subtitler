@@ -318,7 +318,7 @@ def hardcode_subtitle(
         "-b:v", f"{target_kbps}k",
         "-pass", "1",
         "-passlogfile", str(passlog),
-        "-an", "-f", "mp4", "/dev/null",
+        "-an", "-f", "null", "/dev/null",
     ]
     subprocess.run(pass_cmd, check=True, capture_output=True)
 
