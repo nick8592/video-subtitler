@@ -18,7 +18,12 @@ import site
 import subprocess
 import sys
 import tempfile
+import threading
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from faster_whisper import WhisperModel
 
 # Windows consoles default to cp1252/ANSI, which can't encode the "▶" progress
 # icon below and would crash the CLI; force UTF-8 output everywhere.
@@ -78,6 +83,11 @@ MAX_SEGMENT_DURATION_S = 5
 MIN_SPLIT_GAP_S = 0.15
 HARDCODE_STYLE = "FontName=Literata,FontSize=12,PrimaryColour=&HFFFFFF,Outline=0,Shadow=0,BorderStyle=1,Alignment=2,MarginV=20"
 HARDCODE_CODEC = "libx264"
+
+# One WhisperModel instance per (model_size, device, compute_type), reused across
+# calls. Guarded by a lock for concurrent FastAPI request threads.
+_model_cache: dict[tuple[str, str, str], "WhisperModel"] = {}
+_model_cache_lock = threading.Lock()
 
 
 def hex_to_ass_color(hex_color: str) -> str:
@@ -175,14 +185,34 @@ def _split_long_segment(segment, max_duration: float):
     return sub_segments
 
 
+def _load_model(model_size: str, device: str, compute_type: str) -> "WhisperModel":
+    """Return a cached WhisperModel, constructing it once per (size, device, compute_type).
+
+    Whisper models are expensive to build (weights loaded from disk into memory),
+    so re-instantiating one per request/video wastes seconds each time. Cache a
+    single instance and reuse it. The lock makes construction safe under the
+    concurrent threads that FastAPI's asyncio.to_thread may spawn.
+    """
+    key = (model_size, device, compute_type)
+    model = _model_cache.get(key)
+    if model is None:
+        with _model_cache_lock:
+            model = _model_cache.get(key)
+            if model is None:
+                from faster_whisper import WhisperModel
+
+                print(f"  Loading model {model_size} on {device} ({compute_type})…")
+                model = WhisperModel(model_size, device=device, compute_type=compute_type)
+                _model_cache[key] = model
+    return model
+
+
 def transcribe_to_srt(audio_path: Path, srt_path: Path, model_size: str, language: str | None = None, device: str | None = None, compute_type: str | None = None) -> None:
-    from faster_whisper import WhisperModel
     from faster_whisper.vad import VadOptions
 
     _device = device or DEVICE
     _compute_type = compute_type or COMPUTE_TYPE
-    print(f"  Loading model {model_size} on {_device} ({_compute_type})…")
-    model = WhisperModel(model_size, device=_device, compute_type=_compute_type)
+    model = _load_model(model_size, _device, _compute_type)
 
     vad_params = VadOptions(
         max_speech_duration_s=MAX_SPEECH_DURATION_S,
